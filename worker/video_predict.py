@@ -11,7 +11,7 @@ def video_inference(video : cv2.VideoCapture | str, model : str = None, device :
     
     assert type(video) is cv2.VideoCapture
     
-    yolo = YOLO(model)
+    yolo = YOLO(model) if model is not None else YOLO()
     frame_id = 0
     results = {}
     
