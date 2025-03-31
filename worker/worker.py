@@ -39,15 +39,16 @@ client.on_message = on_message
 
 
 if __name__ == "__main__":
-    while True:
+    while not client.is_connected():
         try:
             client.connect(MQTT_HOST, MQTT_PORT)
-            client.loop_start()
-            
-            while client.is_connected():
-                client.publish(f"/{HEARTBEAT_TOPIC}", client_name)
-                time.sleep(0.2)
-                
         except OSError as e:
             print(e)
             time.sleep(5)
+
+    client.loop_start()
+    while client.is_connected():
+        client.publish(f"/{HEARTBEAT_TOPIC}", client_name)
+        time.sleep(0.2)
+                
+        
