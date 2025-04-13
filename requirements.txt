@@ -1,0 +1,6 @@
+paho-mqtt
+munch
+nicegui
+opencv-python
+
+ultralytics [worker]
