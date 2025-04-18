@@ -41,7 +41,7 @@ def on_connect(client : MQTT.Client, userdata, flags, reason_code, properties):
     
 def on_message(client : MQTT.Client, userdata, message : MQTT.MQTTMessage):
     if(message.topic.endswith(HEARTBEAT_TOPIC)):
-        hb = heartbeat_decode(message.payload.decode)
+        hb = heartbeat_decode(message.payload.decode())
         heartbeat_cb(hb)
     if(message.topic.endswith(REQUEST_INBOX)):
         # data = message_decode(message.payload)
