@@ -1,10 +1,11 @@
 from paho.mqtt import client as MQTT
 import secrets
 import time
+import threading
 
-from common.Topics import *
-from worker.ReliableBroadcast import RBInstance, RBMessage, rbmessage_decode
-from common.Heartbeat import Heartbeat, heartbeat_decode
+from utils.common.Topics import *
+from utils.worker.ReliableBroadcast import RBInstance, RBMessage, rbmessage_decode
+from utils.common.Heartbeat import Heartbeat, heartbeat_decode
 
 # MQTT network info. Broker always takes 192.168.0.2
 MQTT_HOST = "192.168.1.130" # broker ip
@@ -28,8 +29,8 @@ def heartbeat_timeout_loop():
         time.sleep(1)
         
 
-def heartbeat_cb(message : bytes):
-    node = message.decode()
+def heartbeat_cb(message : Heartbeat):
+    node = message.node
     if node not in node_ping:
         node_ping.append(node)
 
@@ -39,6 +40,9 @@ def on_connect(client : MQTT.Client, userdata, flags, reason_code, properties):
     client.subscribe(f"{BROADCAST_TOPIC}")
     
 def on_message(client : MQTT.Client, userdata, message : MQTT.MQTTMessage):
+    if(message.topic.endswith(HEARTBEAT_TOPIC)):
+        hb = heartbeat_decode(message.payload.decode)
+        heartbeat_cb(hb)
     if(message.topic.endswith(REQUEST_INBOX)):
         # data = message_decode(message.payload)
         initial_message = RBMessage("initial", "client", message.payload.decode())
@@ -75,7 +79,8 @@ if __name__ == "__main__":
         except OSError as e:
             print(e)
             time.sleep(5)
-
+            
+    threading.Thread(target=heartbeat_timeout_loop, daemon=True).start()
     client.loop_start()
     while client.is_connected():
         client.publish(f"{HEARTBEAT_TOPIC}", client_name)
