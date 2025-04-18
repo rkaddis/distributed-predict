@@ -83,7 +83,7 @@ if __name__ == "__main__":
         except OSError as e:
             print(e)
             time.sleep(5)
-    print("Connected")        
+    print(f"Connected as {client_name}")        
     threading.Thread(target=heartbeat_timeout_loop, daemon=True).start()
     while client.is_connected():
         hb_message = Heartbeat(node=client_name, status="free")
