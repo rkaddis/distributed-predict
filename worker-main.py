@@ -43,11 +43,11 @@ def on_message(client : MQTT.Client, userdata, message : MQTT.MQTTMessage):
     if(message.topic.endswith(HEARTBEAT_TOPIC)):
         hb = heartbeat_decode(message.payload.decode())
         heartbeat_cb(hb)
-    if(message.topic.endswith(REQUEST_INBOX)):
+    elif(message.topic.endswith(REQUEST_INBOX)):
         # data = message_decode(message.payload)
         initial_message = RBMessage("initial", "client", message.payload.decode())
         client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
-    if(message.topic.endswith(BROADCAST_TOPIC)):
+    elif(message.topic.endswith(BROADCAST_TOPIC)):
         rb_message = rbmessage_decode(message.payload.decode())
         if rb_message.state == 'initial':
             broadcast_queue.append(RBInstance(client, nodes, rb_message))
