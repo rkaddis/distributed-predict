@@ -76,6 +76,7 @@ if __name__ == "__main__":
     while not client.is_connected():
         try:
             client.connect(MQTT_HOST, MQTT_PORT)
+            time.sleep(0.5)
         except OSError as e:
             print(e)
             time.sleep(5)
