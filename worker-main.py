@@ -79,7 +79,7 @@ if __name__ == "__main__":
         except OSError as e:
             print(e)
             time.sleep(5)
-            
+    print("Connected")        
     threading.Thread(target=heartbeat_timeout_loop, daemon=True).start()
     client.loop_start()
     while client.is_connected():
