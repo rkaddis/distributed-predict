@@ -76,13 +76,13 @@ if __name__ == "__main__":
     while not client.is_connected():
         try:
             client.connect(MQTT_HOST, MQTT_PORT)
+            client.loop_start()
             time.sleep(0.5)
         except OSError as e:
             print(e)
             time.sleep(5)
     print("Connected")        
     threading.Thread(target=heartbeat_timeout_loop, daemon=True).start()
-    client.loop_start()
     while client.is_connected():
         client.publish(f"{HEARTBEAT_TOPIC}", client_name)
         time.sleep(0.2)
