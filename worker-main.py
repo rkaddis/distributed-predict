@@ -84,7 +84,8 @@ if __name__ == "__main__":
     print("Connected")        
     threading.Thread(target=heartbeat_timeout_loop, daemon=True).start()
     while client.is_connected():
-        client.publish(f"{HEARTBEAT_TOPIC}", client_name)
+        hb_message = Heartbeat(node=client_name, status="free")
+        client.publish(f"{HEARTBEAT_TOPIC}", hb_message.encode_message())
         time.sleep(0.2)
                 
         
