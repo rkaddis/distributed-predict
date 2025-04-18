@@ -57,6 +57,8 @@ def on_message(client : MQTT.Client, userdata, message : MQTT.MQTTMessage):
                 if rb_message.subject == broadcast_queue[i].subject:
                     index = i
                     break
+            if index == -1:
+                return
             out = broadcast_queue[index].handle_message(rb_message)
             if out is not None:
                 print(out.encode_message())
