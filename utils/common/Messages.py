@@ -45,6 +45,9 @@ class RBMessage(Message):
     def __eq__(self, other):
         return self.state == other.state and self.subject == other.subject and self.data == other.data
     
+    def __del__(self):
+        del(self.content)
+    
 def rbmessage_decode(content : str) -> RBMessage:
     d = json.loads(content)
     return RBMessage(d["state"], d["subject"], d["data"])
@@ -61,6 +64,9 @@ class Heartbeat(Message):
 
         self.content["node"] = node
         self.content["status"] = status
+
+    def __del__(self):
+        del(self.content)
 
 def heartbeat_decode(content : str) -> Heartbeat:
     data = json.loads(content)
