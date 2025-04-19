@@ -83,6 +83,7 @@ class Worker:
             time.sleep(1)
 
         print("Done!!!")
+        print(self.results_dict)
 
     # adds a node to the list of known nodes.        
     def heartbeat_cb(self, message : Heartbeat):
