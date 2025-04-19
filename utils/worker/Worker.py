@@ -144,7 +144,7 @@ class Worker:
         self.busy = True
         image = self.image_dict[task_id]
         hits = self.predictor.image_predict(image)
-        initial_message = RBMessage("initial", task_id, hits)
+        initial_message = RBMessage("initial", str(task_id), str(hits))
         self.client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
         self.busy = False
         print(f"Done with task {task_id}")
