@@ -72,7 +72,7 @@ class Worker:
                 if self.nodes[node] == "free":
                     task_id = -1
                     for i in self.image_dict.keys():
-                        if i not in self.processing_queue:
+                        if i not in self.processing_queue and i not in self.results_dict:
                             task_id = i
                             break
 
