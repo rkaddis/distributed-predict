@@ -64,3 +64,23 @@ def heartbeat_decode(content : str) -> Heartbeat:
     data = json.loads(content)
     return Heartbeat(data["node"], data["status"])
 
+class VideoRequest(Message):
+
+    video : str
+    target : int
+
+    def __init__(self, video = "", target = ""):
+        super().__init__({})
+        self.video = video
+        self.target = target
+
+        self.content["video"] = video
+        self.content["target"] = target
+
+    def __del__(self):
+        del(self.content)
+
+def videorequest_decode(content : str) -> VideoRequest:
+    data = json.loads(content)
+    return Heartbeat(data["video"], data["target"])
+

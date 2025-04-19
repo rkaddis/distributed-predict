@@ -10,7 +10,7 @@ import tempfile
 
 from ..common.Topics import *
 from .ReliableBroadcast import RBInstance
-from ..common.Messages import RBMessage, rbmessage_decode, Heartbeat, heartbeat_decode
+from ..common.Messages import RBMessage, rbmessage_decode, Heartbeat, heartbeat_decode, VideoRequest, videorequest_decode
 from .ImagePredict import ImagePredictor
 
 # MQTT network info.
@@ -32,6 +32,7 @@ class Worker:
     processing_queue : list[int] = []
     predictor : ImagePredictor
     free_nodes : list[str] = []
+    target : int = 0
 
     def __init__(self):
         self.client_name = secrets.token_urlsafe(8) # set client name as random string
@@ -95,9 +96,9 @@ class Worker:
             self.free_nodes.append(node)
 
     # gets the request from the user and broadcasts it.
-    def request_cb(self, data : str):
+    def request_cb(self, message : VideoRequest):
         self.leader = True
-        initial_message = RBMessage("initial", "client", data)
+        initial_message = RBMessage("initial", "client", message.encode_message())
         self.client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
         del(initial_message)
 
@@ -118,7 +119,8 @@ class Worker:
                 self.broadcast_queue.pop(index)
                 
                 if out.subject == "client": # client's video request
-                    video_bytes = b64decode(out.data)
+                    vr = videorequest_decode(out.data)
+                    video_bytes = b64decode(vr.video)
                     tf = tempfile.NamedTemporaryFile(suffix=".mp4")
                     tf.write(video_bytes)
                     cap = cv.VideoCapture(tf.name)
@@ -130,6 +132,7 @@ class Worker:
                         check, im = cap.read()
                         frame += 1
                     
+                    self.target = vr.target
                     print(f"Got {len(self.image_dict.keys())} frames")
                     if(self.leader):
                         threading.Thread(target=self.leader_loop, daemon=True).start()
@@ -147,7 +150,7 @@ class Worker:
         print(f"Processing task {task_id}")
         self.busy = True
         image = self.image_dict[task_id]
-        hits = self.predictor.image_predict(image)
+        hits = self.predictor.image_predict(image, target=self.target)
         initial_message = RBMessage("initial", str(task_id), str(hits))
         self.client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
         self.busy = False
