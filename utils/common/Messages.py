@@ -2,8 +2,6 @@ import json
 
 class Message:
 
-    content : dict = None
-
     def __init__(self, content : dict = {}):
         self.content = content
 
@@ -12,13 +10,7 @@ class Message:
         """
         Encodes a Munch object into a JSON string.
         """
-        return json.dumps(self.content)
-        
-    def decode_message(self, content : str):
-        """
-        Decodes a JSON string into a Munch.
-        """
-        self.content = json.loads(content)
+        return json.dumps(self.content)     
 
     def __del__(self):
         del(self.content)
@@ -33,7 +25,7 @@ class RBMessage(Message):
     data : str = None
 
     def __init__(self, state : str, subject : str, data : str):
-        super().__init__()
+        super().__init__({})
         self.state = state
         self.subject = subject
         self.data = data
@@ -58,7 +50,7 @@ class Heartbeat(Message):
     status : str
 
     def __init__(self, node = "", status = ""):
-        super().__init__()
+        super().__init__({})
         self.node = node
         self.status = status
 
