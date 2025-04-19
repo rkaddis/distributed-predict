@@ -122,6 +122,7 @@ class Worker:
                     while check: 
                         self.image_dict[frame] = im
                         check, im = cap.read()
+                        frame += 1
                     
                     print(f"Got {len(self.image_dict.keys())} frames")
                     if(self.leader):
@@ -137,12 +138,14 @@ class Worker:
 
 
     def command_cb(self, task_id : int):
+        print(f"Processing task {task_id}")
         self.busy = True
         image = self.image_dict[task_id]
         hits = self.predictor.image_predict(image)
         initial_message = RBMessage("initial", task_id, hits)
         self.client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
         self.busy = False
+        print(f"Done with task {task_id}")
 
 
 
