@@ -75,6 +75,7 @@ class Worker:
                 for i in self.image_dict.keys():
                     if i not in self.processing_queue and i not in self.results_dict:
                         task_id = i
+                        print(task_id)
                         break
 
                 if task_id != -1:
