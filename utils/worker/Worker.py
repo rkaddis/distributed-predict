@@ -66,7 +66,7 @@ class Worker:
             time.sleep(0.5)
 
     def leader_loop(self):
-        while len(self.task_list) > 0:
+        while len(self.results_dict) != len(self.image_dict):
             for node in self.nodes:
                 if self.nodes[node] == "free":
                     task_id = -1
@@ -78,6 +78,9 @@ class Worker:
                     if task_id != -1:
                         self.client.publish(f"/{node}/{CMD_INBOX}", task_id)
                         self.processing_queue.append(task_id)
+                        print(f" {node} is processing frame {task_id}")
+
+        print("Done!!!")
 
     # adds a node to the list of known nodes.        
     def heartbeat_cb(self, message : Heartbeat):
@@ -120,6 +123,8 @@ class Worker:
                         check, im = cap.read()
                     
                     print(f"Got {len(self.image_dict)} frames")
+                    if(self.leader):
+                        threading.Thread(target=self.leader_loop, daemon=True).start()
 
                 elif out.subject.isdigit(): # frame data
                     frame_id = int(out.subject)
