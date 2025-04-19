@@ -81,7 +81,7 @@ class Worker:
                     self.processing_queue.append(task_id)
                     print(f" {node} is processing frame {task_id}")
                 self.free_nodes.remove(node)
-            # time.sleep(1)
+            time.sleep(0.01)
 
         print("Done!!!")
         print(self.results_dict)
