@@ -130,7 +130,7 @@ class Worker:
                     if(self.leader):
                         threading.Thread(target=self.leader_loop, daemon=True).start()
 
-                elif out.subject.isdigit(): # frame data
+                elif type(out.subject) is int: # frame data
                     frame_id = int(out.subject)
                     self.results_dict[frame_id] = int(out.data) if int(out.data) > 0 else -1
                     try:
