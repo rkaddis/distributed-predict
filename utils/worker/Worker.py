@@ -72,7 +72,7 @@ class Worker:
         while len(self.results_dict) != len(self.image_dict):
             for node in self.free_nodes:
                 task_id = -1
-                for i in self.image_dict.keys():
+                for i in self.image_dict:
                     if i not in self.processing_queue and i not in self.results_dict:
                         task_id = i
                         break
@@ -82,10 +82,7 @@ class Worker:
                     self.processing_queue.append(task_id)
                     print(f" {node} is processing frame {task_id}")
                     self.free_nodes.remove(node)
-                # else:
-                    # print(f"Processing queue: {self.processing_queue}")
-                    # print(f"Length of image dict: {len(self.image_dict)}")
-                    # print(f"Length of image dict: {len(self.results_dict)}")
+                
             # print(f"Frames remaining: {len(self.image_dict) - len(self.results_dict)}")
             time.sleep(0.01)
 
