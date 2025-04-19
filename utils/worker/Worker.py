@@ -9,8 +9,9 @@ import numpy as np
 import tempfile
 
 from ..common.Topics import *
-from .ReliableBroadcast import RBInstance, RBMessage, rbmessage_decode
-from ..common.Heartbeat import Heartbeat, heartbeat_decode
+from .ReliableBroadcast import RBInstance
+from ..common.Messages import RBMessage, rbmessage_decode, Heartbeat, heartbeat_decode
+from .ImagePredict import ImagePredictor
 
 # MQTT network info.
 MQTT_HOST = "192.168.1.130" # broker ip
@@ -26,14 +27,17 @@ class Worker:
     nodes : dict = {} # nodes and their statuses
     node_ping : dict = {} # intermediate dict before the main one
     broadcast_queue : list[RBInstance] = [] # queue of pending reliable broadcasts
-    image_list : list[cv.Mat] = []
-    task_list : list[int] = []
+    image_dict : dict = {}
+    results_dict : dict = {}
+    processing_queue : list[int] = []
+    predictor : ImagePredictor
 
     def __init__(self):
         self.client_name = secrets.token_urlsafe(8) # set client name as random string
         self.client = MQTT.Client(MQTT.CallbackAPIVersion.VERSION2, client_id=self.client_name)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
+        self.predictor = ImagePredictor(f"{__file__.replace("Worker.py", "yolov12.pt")}")
 
         # wait for MQTT connection
         while not self.client.is_connected():
@@ -60,6 +64,20 @@ class Worker:
             self.nodes = deepcopy(self.node_ping)
             self.node_ping = {}
             time.sleep(0.5)
+
+    def leader_loop(self):
+        while len(self.task_list) > 0:
+            for node in self.nodes:
+                if self.nodes[node] == "free":
+                    task_id = -1
+                    for i in self.image_dict.keys():
+                        if i not in self.processing_queue:
+                            task_id = i
+                            break
+
+                    if task_id != -1:
+                        self.client.publish(f"/{node}/{CMD_INBOX}", task_id)
+                        self.processing_queue.append(task_id)
 
     # adds a node to the list of known nodes.        
     def heartbeat_cb(self, message : Heartbeat):
@@ -96,12 +114,30 @@ class Worker:
                     cap = cv.VideoCapture(tf.name)
 
                     check, im = cap.read()
-                    while check:
-                        self.image_list.append(im)
+                    frame = 0
+                    while check: 
+                        self.image_dict[frame] = im
                         check, im = cap.read()
                     
-                    self.task_list = range(len(self.image_list))
-                    print(f"Got {len(self.image_list)} frames")
+                    print(f"Got {len(self.image_dict)} frames")
+
+                elif out.subject.isdigit(): # frame data
+                    frame_id = int(out.subject)
+                    self.results_dict[frame_id] = int(out.data) if int(out.data) > 0 else -1
+                    try:
+                        self.processing_queue.remove(frame_id)
+                    except Exception:
+                        pass
+
+
+    def command_cb(self, task_id : int):
+        self.busy = True
+        image = self.image_dict[task_id]
+        hits = self.predictor.image_predict(image)
+        initial_message = RBMessage("initial", task_id, hits)
+        self.client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
+        self.busy = False
+
 
 
     # subscribe to topics
@@ -109,6 +145,7 @@ class Worker:
         client.subscribe(f"{HEARTBEAT_TOPIC}")
         client.subscribe(f"/{self.client_name}/{REQUEST_INBOX}")
         client.subscribe(f"{BROADCAST_TOPIC}")
+        client.subscribe(f"/{self.client_name}/{CMD_INBOX}")
     
     # specify callbacks
     def on_message(self, client : MQTT.Client, userdata, message : MQTT.MQTTMessage):

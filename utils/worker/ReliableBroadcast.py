@@ -3,32 +3,11 @@ from paho.mqtt import client as MQTTClient
 from munch import munchify
 import json
 
-from ..common.Message import Message
+from ..common.Messages import RBMessage, rbmessage_decode
 from ..common.Topics import *
 
 
-class RBMessage(Message):
 
-    state : str = None
-    subject : str = None
-    data : str = None
-
-    def __init__(self, state : str, subject : str, data : str):
-        super().__init__()
-        self.state = state
-        self.subject = subject
-        self.data = data
-
-        self.content.state = state
-        self.content.subject = subject
-        self.content.data = data
-
-    def __eq__(self, other):
-        return self.state == other.state and self.subject == other.subject and self.data == other.data
-    
-def rbmessage_decode(content : str) -> RBMessage:
-    m = munchify(json.loads(content))
-    return RBMessage(m.state, m.subject, m.data)
 
 class RBInstance:
 
@@ -47,7 +26,6 @@ class RBInstance:
 
         # send out your initial contents as an echo
         echo_message = RBMessage("echo", self.subject, initial_message.data)
-        print(echo_message.state)
         self.send_all(echo_message)
 
 
