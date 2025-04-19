@@ -172,7 +172,8 @@ class Worker:
             self.heartbeat_cb(hb)
             del(hb)
         elif(message.topic.endswith(REQUEST_INBOX)):
-            self.request_cb(message.payload.decode())
+            vr = videorequest_decode(message.payload.decode())
+            self.request_cb(vr)
         elif(message.topic.endswith(BROADCAST_TOPIC)):
             rb_message = rbmessage_decode(message.payload.decode())
             self.broadcast_cb(rb_message)
