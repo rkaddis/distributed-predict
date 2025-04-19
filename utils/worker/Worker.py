@@ -94,6 +94,7 @@ class Worker:
         self.leader = True
         initial_message = RBMessage("initial", "client", data)
         self.client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
+        del(initial_message)
 
     # follows the reliable broadcast protocol.
     def broadcast_cb(self, rb_message : RBMessage):

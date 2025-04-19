@@ -21,6 +21,9 @@ class Message:
         """
         self.content = munchify(json.loads(content))
 
+    def __del__(self):
+        del(self.content)
+
 def message_decode(content : str) -> Message:
     return Message(munchify(json.loads(content)))
 
