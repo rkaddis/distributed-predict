@@ -162,11 +162,13 @@ class Worker:
         if(message.topic.endswith(HEARTBEAT_TOPIC)):
             hb = heartbeat_decode(message.payload.decode())
             self.heartbeat_cb(hb)
+            del(hb)
         elif(message.topic.endswith(REQUEST_INBOX)):
             self.request_cb(message.payload.decode())
         elif(message.topic.endswith(BROADCAST_TOPIC)):
             rb_message = rbmessage_decode(message.payload.decode())
             self.broadcast_cb(rb_message)
+            del(rb_message)
         elif(message.topic.endswith(CMD_INBOX)):
             threading.Thread(target=self.command_cb, args=[int(message.payload.decode())], daemon=True).start()
             
