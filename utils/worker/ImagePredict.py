@@ -8,7 +8,7 @@ class ImagePredictor:
         self.yolo = YOLO(model) if model is not None else YOLO()
 
 
-    def image_predict(self, image : cv2.Mat, device : int | str = "cpu", target : int = 77) -> int:
+    def image_predict(self, image : cv2.Mat, device : int | str = "cpu", target : int = 76) -> int:
         '''
         Runs YOLO object detection on a frame, and returns the number of occurances of a target object.
         '''

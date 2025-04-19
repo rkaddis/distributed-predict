@@ -31,6 +31,7 @@ class Worker:
     results_dict : dict = {}
     processing_queue : list[int] = []
     predictor : ImagePredictor
+    free_nodes : list[str] = []
 
     def __init__(self):
         self.client_name = secrets.token_urlsafe(8) # set client name as random string
@@ -68,19 +69,19 @@ class Worker:
 
     def leader_loop(self):
         while len(self.results_dict) != len(self.image_dict):
-            for node in self.nodes:
-                if self.nodes[node] == "free":
-                    task_id = -1
-                    for i in self.image_dict.keys():
-                        if i not in self.processing_queue and i not in self.results_dict:
-                            task_id = i
-                            break
+            for node in self.free_nodes:
+                task_id = -1
+                for i in self.image_dict.keys():
+                    if i not in self.processing_queue and i not in self.results_dict:
+                        task_id = i
+                        break
 
-                    if task_id != -1:
-                        self.client.publish(f"/{node}/{CMD_INBOX}", task_id)
-                        self.processing_queue.append(task_id)
-                        print(f" {node} is processing frame {task_id}")
-            time.sleep(1)
+                if task_id != -1:
+                    self.client.publish(f"/{node}/{CMD_INBOX}", task_id)
+                    self.processing_queue.append(task_id)
+                    print(f" {node} is processing frame {task_id}")
+                self.free_nodes.remove(node)
+            # time.sleep(1)
 
         print("Done!!!")
         print(self.results_dict)
@@ -90,6 +91,8 @@ class Worker:
         node = message.node
         if node not in self.node_ping:
             self.node_ping[node] = message.status
+        if self.leader and message.status == "free" and node not in self.free_nodes:
+            self.free_nodes.append(node)
 
     # gets the request from the user and broadcasts it.
     def request_cb(self, data : str):
