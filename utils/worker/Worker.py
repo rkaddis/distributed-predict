@@ -163,6 +163,8 @@ class Worker:
         elif(message.topic.endswith(BROADCAST_TOPIC)):
             rb_message = rbmessage_decode(message.payload.decode())
             self.broadcast_cb(rb_message)
+        elif(message.topic.endswith(CMD_INBOX)):
+            self.command_cb(int(message.payload.decode()))
             
 
     
