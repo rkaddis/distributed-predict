@@ -52,6 +52,9 @@ client.connect(MQTT_HOST, MQTT_PORT)
 client.loop_start()
 threading.Thread(target=heartbeat_timeout_loop, daemon=True).start()
 time.sleep(2)
+video = ""
+with open("test_video.mp4", "rb") as f:
+    video = f.read()
 print(f"Sending message to {nodes[0]}")
-client.publish(f"/{nodes[0]}/{REQUEST_INBOX}", "hello, world!")
+client.publish(f"/{nodes[0]}/{REQUEST_INBOX}", video.decode(errors="ignore"))
 time.sleep(1)
