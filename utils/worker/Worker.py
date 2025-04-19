@@ -82,11 +82,11 @@ class Worker:
                     self.processing_queue.append(task_id)
                     print(f" {node} is processing frame {task_id}")
                     self.free_nodes.remove(node)
-                else:
-                    print(f"Processing queue: {self.processing_queue}")
-                    print(f"Length of image dict: {len(self.image_dict)}")
-                    print(f"Length of image dict: {len(self.results_dict)}")
-            print(f"Frames remaining: {len(self.image_dict) - len(self.results_dict)}")
+                # else:
+                    # print(f"Processing queue: {self.processing_queue}")
+                    # print(f"Length of image dict: {len(self.image_dict)}")
+                    # print(f"Length of image dict: {len(self.results_dict)}")
+            # print(f"Frames remaining: {len(self.image_dict) - len(self.results_dict)}")
             time.sleep(0.01)
 
         print("Done!!!")
