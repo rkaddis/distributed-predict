@@ -5,7 +5,7 @@ from base64 import b64encode
 
 from utils.common.Topics import *
 from utils.worker.ReliableBroadcast import RBInstance, RBMessage, rbmessage_decode
-from utils.common.Heartbeat import Heartbeat, heartbeat_decode
+from utils.common.Messages import Heartbeat, heartbeat_decode
 
 # MQTT network info. Broker always takes 192.168.0.2
 MQTT_HOST = "192.168.1.130" # broker ip
