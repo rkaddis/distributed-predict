@@ -80,7 +80,7 @@ class Worker:
                         self.client.publish(f"/{node}/{CMD_INBOX}", task_id)
                         self.processing_queue.append(task_id)
                         print(f" {node} is processing frame {task_id}")
-            time.sleep(0.5)
+            time.sleep(1)
 
         print("Done!!!")
 
@@ -130,7 +130,7 @@ class Worker:
                     if(self.leader):
                         threading.Thread(target=self.leader_loop, daemon=True).start()
 
-                elif type(out.subject) is int: # frame data
+                elif out.subject.isdigit(): # frame data
                     frame_id = int(out.subject)
                     self.results_dict[frame_id] = int(out.data) if int(out.data) > 0 else -1
                     try:
