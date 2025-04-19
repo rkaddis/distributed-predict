@@ -81,7 +81,7 @@ class Worker:
                     self.client.publish(f"/{node}/{CMD_INBOX}", task_id)
                     self.processing_queue.append(task_id)
                     print(f" {node} is processing frame {task_id}")
-                self.free_nodes.remove(node)
+                    self.free_nodes.remove(node)
             time.sleep(0.01)
 
         print("Done!!!")
