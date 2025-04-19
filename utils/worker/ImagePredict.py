@@ -13,7 +13,7 @@ class ImagePredictor:
         Runs YOLO object detection on a frame, and returns the number of occurances of a target object.
         '''
         
-        result = self.yolo.predict(image, device=device, classes=[target])[0]
+        result = self.yolo.predict(image, device=device, classes=[target], stream=True, verbose=False)[0]
         hits = len(result.boxes)
                 
         return hits
