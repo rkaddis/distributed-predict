@@ -5,6 +5,7 @@ import threading
 from copy import deepcopy
 from base64 import b64decode
 import cv2 as cv
+import numpy as np
 
 from ..common.Topics import *
 from .ReliableBroadcast import RBInstance, RBMessage, rbmessage_decode
@@ -88,8 +89,14 @@ class Worker:
                 self.broadcast_queue.pop(index)
                 
                 if out.subject == "client": # client's video request
-                    video = b64decode(out.data)
+                    video_bytes = b64decode(out.data)
                     print("I have a video!!!")
+                    np_video = np.frombuffer(video_bytes, np.uint8)
+                    video_stream = cv.imdecode(np_video, cv.IMREAD_UNCHANGED)
+                    for frame in video_stream:
+                        self.image_list.append(frame)
+                    self.task_list = range(len(self.image_list))
+                    print(f"got {len(self.image_list)} frames")
 
     # subscribe to topics
     def on_connect(self, client : MQTT.Client, userdata, flags, reason_code, properties):
