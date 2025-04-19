@@ -3,6 +3,7 @@ import secrets
 import time
 import threading
 from copy import deepcopy
+from base64 import b64decode
 
 from ..common.Topics import *
 from .ReliableBroadcast import RBInstance, RBMessage, rbmessage_decode
@@ -63,6 +64,9 @@ class Worker:
 
     # gets the request from the user and broadcasts it.
     def request_cb(self, data : str):
+        video = b64decode(data)
+        with open("test123.mp4", "wb") as f:
+            f.write(video)
         self.leader = True
         initial_message = RBMessage("initial", "client", data)
         self.client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
