@@ -92,6 +92,7 @@ class Worker:
                 if out.subject == "client": # client's video request
                     video_bytes = b64decode(out.data)
                     tf = tempfile.NamedTemporaryFile(suffix=".mp4")
+                    tf.write(video_bytes)
                     cap = cv.VideoCapture(tf.name)
 
                     check, im = cap.read()
