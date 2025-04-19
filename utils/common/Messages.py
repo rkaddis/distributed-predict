@@ -1,11 +1,10 @@
-from munch import Munch, munchify, unmunchify
 import json
 
 class Message:
 
-    content : Munch = None
+    content : dict = None
 
-    def __init__(self, content : Munch = Munch()):
+    def __init__(self, content : dict = {}):
         self.content = content
 
 
@@ -13,19 +12,19 @@ class Message:
         """
         Encodes a Munch object into a JSON string.
         """
-        return json.dumps(unmunchify(self.content))
+        return json.dumps(self.content)
         
     def decode_message(self, content : str):
         """
         Decodes a JSON string into a Munch.
         """
-        self.content = munchify(json.loads(content))
+        self.content = json.loads(content)
 
     def __del__(self):
         del(self.content)
 
 def message_decode(content : str) -> Message:
-    return Message(munchify(json.loads(content)))
+    return Message(json.loads(content))
 
 class RBMessage(Message):
 
@@ -39,16 +38,16 @@ class RBMessage(Message):
         self.subject = subject
         self.data = data
 
-        self.content.state = state
-        self.content.subject = subject
-        self.content.data = data
+        self.content["state"] = state
+        self.content["subject"] = subject
+        self.content["data"] = data
 
     def __eq__(self, other):
         return self.state == other.state and self.subject == other.subject and self.data == other.data
     
 def rbmessage_decode(content : str) -> RBMessage:
-    m = munchify(json.loads(content))
-    return RBMessage(m.state, m.subject, m.data)
+    d = json.loads(content)
+    return RBMessage(d["state"], d["subject"], d["data"])
 
 class Heartbeat(Message):
 
@@ -60,10 +59,10 @@ class Heartbeat(Message):
         self.node = node
         self.status = status
 
-        self.content.node = node
-        self.content.status = status
+        self.content["node"] = node
+        self.content["status"] = status
 
 def heartbeat_decode(content : str) -> Heartbeat:
-    data = munchify(json.loads(content))
-    return Heartbeat(data.node, data.status)
+    data = json.loads(content)
+    return Heartbeat(data["node"], data["status"])
 
