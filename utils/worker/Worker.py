@@ -67,7 +67,7 @@ class Worker:
 
     def leader_loop(self):
         while len(self.results_dict) != len(self.image_dict):
-            for node in self.nodes:
+            for node in self.nodes.keys():
                 if self.nodes[node] == "free":
                     task_id = -1
                     for i in self.image_dict.keys():
