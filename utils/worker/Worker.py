@@ -67,7 +67,7 @@ class Worker:
 
     def leader_loop(self):
         while len(self.results_dict) != len(self.image_dict):
-            for node in self.nodes.keys():
+            for node in self.nodes:
                 if self.nodes[node] == "free":
                     task_id = -1
                     for i in self.image_dict.keys():
@@ -79,6 +79,7 @@ class Worker:
                         self.client.publish(f"/{node}/{CMD_INBOX}", task_id)
                         self.processing_queue.append(task_id)
                         print(f" {node} is processing frame {task_id}")
+            time.sleep(0.5)
 
         print("Done!!!")
 
@@ -122,7 +123,7 @@ class Worker:
                         self.image_dict[frame] = im
                         check, im = cap.read()
                     
-                    print(f"Got {len(self.image_dict)} frames")
+                    print(f"Got {len(self.image_dict.keys())} frames")
                     if(self.leader):
                         threading.Thread(target=self.leader_loop, daemon=True).start()
 
