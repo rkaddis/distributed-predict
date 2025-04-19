@@ -69,7 +69,7 @@ class VideoRequest(Message):
     video : str
     target : int
 
-    def __init__(self, video = "", target = ""):
+    def __init__(self, video = "", target = 0):
         super().__init__({})
         self.video = video
         self.target = target

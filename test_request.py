@@ -4,8 +4,7 @@ import threading
 from base64 import b64encode
 
 from utils.common.Topics import *
-from utils.worker.ReliableBroadcast import RBInstance, RBMessage, rbmessage_decode
-from utils.common.Messages import Heartbeat, heartbeat_decode
+from utils.common.Messages import Heartbeat, heartbeat_decode, VideoRequest
 
 # MQTT network info. Broker always takes 192.168.0.2
 MQTT_HOST = "192.168.1.130" # broker ip
@@ -19,7 +18,6 @@ client = MQTT.Client(MQTT.CallbackAPIVersion.VERSION2, client_id=client_name)
 
 nodes : list[str] = []
 node_ping : list[str] = []
-broadcast_queue : list[RBInstance] = []
 
 def heartbeat_timeout_loop():
     global nodes, node_ping
@@ -56,6 +54,7 @@ time.sleep(2)
 video = ""
 with open("test_video.mp4", "rb") as f:
     video = f.read()
+vr = VideoRequest(b64encode(video).decode(), 76)
 print(f"Sending message to {nodes[0]}")
-client.publish(f"/{nodes[0]}/{REQUEST_INBOX}", b64encode(video).decode())
+client.publish(f"/{nodes[0]}/{REQUEST_INBOX}", vr.encode_message())
 time.sleep(1)
