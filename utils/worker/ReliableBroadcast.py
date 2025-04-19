@@ -7,22 +7,16 @@ from ..common.Messages import RBMessage, rbmessage_decode
 from ..common.Topics import *
 
 
-
-
 class RBInstance:
 
-    client : MQTTClient.Client
-    nodes : list[str]
-    subject : str
-    initial_message = RBMessage
-    echo_messages : list[RBMessage] = []
-    ready_messages : list[RBMessage] = []
 
     def __init__(self, client : MQTTClient.Client, nodes : list[str], initial_message: RBMessage):
         self.client = client # mqtt client
         self.nodes = nodes # list of nodes in network
         self.initial_message = initial_message # the initial message/state of the RB protocol
         self.subject = initial_message.subject # the subject of the message
+        self.echo_messages : list[RBMessage] = []
+        self.ready_messages : list[RBMessage] = []
 
         # send out your initial contents as an echo
         echo_message = RBMessage("echo", self.subject, initial_message.data)
