@@ -55,6 +55,7 @@ class Worker:
         while self.client.is_connected():
             hb_message = Heartbeat(node=self.client_name, status="free" if not self.busy else "busy")
             self.client.publish(f"{HEARTBEAT_TOPIC}", hb_message.encode_message())
+            del(hb_message)
             time.sleep(0.1)
 
 
