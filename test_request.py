@@ -56,6 +56,6 @@ time.sleep(2)
 video = ""
 with open("test_video.mp4", "rb") as f:
     video = f.read()
-print(f"Sending message to test")
-client.publish(f"/etst/{REQUEST_INBOX}", b64encode(video).decode())
+print(f"Sending message to {nodes[0]}")
+client.publish(f"/{nodes[0]}/{REQUEST_INBOX}", b64encode(video).decode())
 time.sleep(1)

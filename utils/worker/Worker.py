@@ -4,6 +4,7 @@ import time
 import threading
 from copy import deepcopy
 from base64 import b64decode
+import cv2 as cv
 
 from ..common.Topics import *
 from .ReliableBroadcast import RBInstance, RBMessage, rbmessage_decode
@@ -23,6 +24,8 @@ class Worker:
     nodes : dict = {} # nodes and their statuses
     node_ping : dict = {} # intermediate dict before the main one
     broadcast_queue : list[RBInstance] = [] # queue of pending reliable broadcasts
+    image_list : list[cv.Mat] = []
+    task_list : list[int] = []
 
     def __init__(self):
         self.client_name = secrets.token_urlsafe(8) # set client name as random string
@@ -64,9 +67,6 @@ class Worker:
 
     # gets the request from the user and broadcasts it.
     def request_cb(self, data : str):
-        video = b64decode(data)
-        with open("test123.mp4", "wb") as f:
-            f.write(video)
         self.leader = True
         initial_message = RBMessage("initial", "client", data)
         self.client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
@@ -85,8 +85,11 @@ class Worker:
                 return
             out = self.broadcast_queue[index].handle_message(rb_message)
             if out is not None:
-                print(out.encode_message())
                 self.broadcast_queue.pop(index)
+                
+                if out.subject == "client": # client's video request
+                    video = b64decode(out.data)
+                    print("I have a video!!!")
 
     # subscribe to topics
     def on_connect(self, client : MQTT.Client, userdata, flags, reason_code, properties):
