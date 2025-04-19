@@ -82,5 +82,5 @@ class VideoRequest(Message):
 
 def videorequest_decode(content : str) -> VideoRequest:
     data = json.loads(content)
-    return Heartbeat(data["video"], data["target"])
+    return VideoRequest(data["video"], data["target"])
 
