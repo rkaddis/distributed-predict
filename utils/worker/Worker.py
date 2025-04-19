@@ -37,7 +37,7 @@ class Worker:
         self.client = MQTT.Client(MQTT.CallbackAPIVersion.VERSION2, client_id=self.client_name)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
-        self.predictor = ImagePredictor(f"{__file__.replace('Worker.py', 'yolov12n.pt')}")
+        self.predictor = ImagePredictor(f"{__file__.replace('Worker.py', 'yolo12n.pt')}")
 
         # wait for MQTT connection
         while not self.client.is_connected():
