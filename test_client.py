@@ -16,7 +16,7 @@ from nicegui import ui
 from nicegui.events import UploadEventArguments
 from paho.mqtt import client as MQTT
 from utils.common.Messages import Heartbeat, VideoRequest, heartbeat_decode
-from utils.common.Topics import BROADCAST_TOPIC, CMD_INBOX, HEARTBEAT_TOPIC, REQUEST_INBOX  # noqa
+from utils.common.Topics import CLIENT_TOPIC, HEARTBEAT_TOPIC, REQUEST_INBOX  # noqa
 
 MQTT_HOST = "192.168.1.130"  # broker ip
 MQTT_PORT = 1883  # broker port
@@ -147,12 +147,16 @@ class DistributedVideoProcessingApp:
     def on_connect(self, client: MQTT.Client, userdata, flags, reason_code, properties):
         """MQTT Client on connect, subscribe to topics."""
         client.subscribe(f"{HEARTBEAT_TOPIC}")
+        client.subscribe(f"{CLIENT_TOPIC}")
 
     def on_message(self, client: MQTT.Client, userdata, message: MQTT.MQTTMessage):
         """MQTT Client on message receipt, do callbacks."""
         if message.topic.endswith(HEARTBEAT_TOPIC):
             hb = heartbeat_decode(message.payload.decode())
             self.heartbeat_cb(hb)
+        if message.topic.endswith(CLIENT_TOPIC):
+            with open("output_clip.mp4", "wb") as f:
+                f.write(b64decode(message.payload.decode()))
 
     def mqtt_connect(self):
         """Connects the MQTT client to the broker, and starts the heartbeat loop."""

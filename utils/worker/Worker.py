@@ -3,7 +3,7 @@ import secrets
 import time
 import threading
 from copy import deepcopy
-from base64 import b64decode
+from base64 import b64decode, b64encode
 import cv2 as cv
 import numpy as np
 import tempfile
@@ -12,6 +12,7 @@ from ..common.Topics import *
 from .ReliableBroadcast import RBInstance
 from ..common.Messages import RBMessage, rbmessage_decode, Heartbeat, heartbeat_decode, VideoRequest, videorequest_decode
 from .ImagePredict import ImagePredictor
+from .MaxSubarray import max_subarray
 
 # MQTT network info.
 MQTT_HOST = "192.168.1.130" # broker ip
@@ -69,6 +70,8 @@ class Worker:
             time.sleep(0.5)
 
     def leader_loop(self):
+
+        # distribute tasks to open nodes
         while len(self.results_dict) != len(self.image_dict):
             for node in self.free_nodes:
                 task_id = -1
@@ -88,8 +91,21 @@ class Worker:
             # print(f"Frames remaining: {len(self.image_dict) - len(self.results_dict)}")
             time.sleep(0.01)
 
-        print("Done!!!")
-        print(self.results_dict)
+        # return the results to the client
+        start_frame, end_frame = max_subarray(dict(sorted(self.results_dict)))
+        fourcc = cv.VideoWriter_fourcc(*'mp4v') # Be sure to use lower case
+        tf = tempfile.NamedTemporaryFile(suffix=".mp4")
+        rows, cols, _ = self.image_dict[0].shape
+        out = cv.VideoWriter(tf.name, fourcc, 30.0, (cols, rows))
+        for frame in range(start_frame, end_frame):
+            out.write(self.image_dict[frame])
+        out.release()
+
+        clip = ""
+        with open(tf.name, "rb") as f:
+            clip = f.read()
+        
+        self.client.publish(CLIENT_TOPIC, b64encode(clip).decode())
 
     # adds a node to the list of known nodes.        
     def heartbeat_cb(self, message : Heartbeat):

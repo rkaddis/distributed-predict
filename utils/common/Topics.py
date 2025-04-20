@@ -3,3 +3,4 @@ CMD_INBOX = "cmd_inbox"
 
 HEARTBEAT_TOPIC = "/heartbeat"
 BROADCAST_TOPIC = "/broadcast"
+CLIENT_TOPIC = "/client"
