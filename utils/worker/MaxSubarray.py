@@ -6,16 +6,24 @@ def max_subarray(arr : dict) -> tuple[int,int]:
     Uses Kadane's algorithm, https://en.wikipedia.org/wiki/Maximum_subarray_problem
     """
 
-    current_sum = 0
-    start_key = 0
-    end_key = 0
+    curr_sum = 0
+    curr_start = 0
+    curr_end = 0
+    best_sum = float("-inf")
+    best_start = 0
+    best_end = 0
     for x in arr.keys():
-        if arr[x] > current_sum + arr[x]:
-            start_key = x
-            end_key = x
-            current_sum = arr[x]
+        if arr[x] > curr_sum + arr[x]:
+            curr_start = x
+            curr_end = x
+            curr_sum = arr[x]
         else:
-            current_sum = current_sum + arr[x]
-            end_key = x
+            curr_sum = curr_sum + arr[x]
+            curr_end = x
+
+        if curr_sum > best_sum:
+            best_sum = curr_sum
+            best_start = curr_start
+            best_end = curr_end
         
-    return (start_key, end_key)
+    return (best_start, best_end)

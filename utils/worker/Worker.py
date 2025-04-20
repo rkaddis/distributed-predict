@@ -106,6 +106,7 @@ class Worker:
             clip = f.read()
         
         self.client.publish(CLIENT_TOPIC, b64encode(clip).decode())
+        print("Sent results back to client.")
 
     # adds a node to the list of known nodes.        
     def heartbeat_cb(self, message : Heartbeat):
