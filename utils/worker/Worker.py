@@ -13,10 +13,7 @@ from .ReliableBroadcast import RBInstance
 from ..common.Messages import RBMessage, rbmessage_decode, Heartbeat, heartbeat_decode, VideoRequest, videorequest_decode
 from .ImagePredict import ImagePredictor
 from .MaxSubarray import max_subarray
-
-# MQTT network info.
-MQTT_HOST = "192.168.1.130" # broker ip
-MQTT_PORT = 1883 # broker port
+from ..common.MQTT_Broker import MQTT_HOST, MQTT_PORT
 
 class Worker:
 

@@ -17,9 +17,7 @@ from nicegui.events import UploadEventArguments
 from paho.mqtt import client as MQTT
 from utils.common.Messages import Heartbeat, VideoRequest, heartbeat_decode
 from utils.common.Topics import CLIENT_TOPIC, HEARTBEAT_TOPIC, REQUEST_INBOX  # noqa
-
-MQTT_HOST = "192.168.1.130"  # broker ip
-MQTT_PORT = 1883  # broker port
+from utils.common.MQTT_Broker import MQTT_HOST, MQTT_PORT
 
 class DistributedVideoProcessingApp:
     def __init__(self):
