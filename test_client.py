@@ -18,6 +18,8 @@ from paho.mqtt import client as MQTT
 from utils.common.Messages import Heartbeat, VideoRequest, heartbeat_decode
 from utils.common.Topics import BROADCAST_TOPIC, CMD_INBOX, HEARTBEAT_TOPIC, REQUEST_INBOX  # noqa
 
+MQTT_HOST = "192.168.1.130"  # broker ip
+MQTT_PORT = 1883  # broker port
 
 class DistributedVideoProcessingApp:
     def __init__(self):
@@ -32,6 +34,12 @@ class DistributedVideoProcessingApp:
         self.class_select = None
         self.status_label = None
         self.video_preview = None
+
+        self.client_name = "client"  # mqtt client name
+        self.client = MQTT.Client(MQTT.CallbackAPIVersion.VERSION2, client_id=self.client_name)
+
+        self.nodes: list[str] = []
+        self.node_ping: list[str] = []
 
         # Acceptable video formats
         self.valid_video_types = [
@@ -122,6 +130,49 @@ class DistributedVideoProcessingApp:
             78: "hair drier",
             79: "toothbrush",
         }
+
+    def heartbeat_timeout_loop(self):
+        """Updates the list of available nodes on a loop. Meant to run in a thread."""
+        while True:
+            self.nodes = self.node_ping
+            self.node_ping = []
+            time.sleep(1)
+
+    def heartbeat_cb(self, message: Heartbeat):
+        """Callback for node heartbeat messages."""
+        node = message.node
+        if node not in self.node_ping:
+            self.node_ping.append(node)
+
+    def on_connect(self, client: MQTT.Client, userdata, flags, reason_code, properties):
+        """MQTT Client on connect, subscribe to topics."""
+        client.subscribe(f"{HEARTBEAT_TOPIC}")
+
+    def on_message(self, client: MQTT.Client, userdata, message: MQTT.MQTTMessage):
+        """MQTT Client on message receipt, do callbacks."""
+        if message.topic.endswith(HEARTBEAT_TOPIC):
+            hb = heartbeat_decode(message.payload.decode())
+            self.heartbeat_cb(hb)
+
+    def mqtt_connect(self):
+        """Connects the MQTT client to the broker, and starts the heartbeat loop."""
+        # subscriptions and callbacks
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
+
+        # connect to the broker
+        while not self.client.is_connected():
+            try:
+                self.client.connect(MQTT_HOST, MQTT_PORT)
+                self.client.loop_start()
+            except OSError as e:
+                print(e)
+                time.sleep(5)
+            time.sleep(0.1)
+        
+        # start heartbeat loop
+        threading.Thread(target=self.heartbeat_timeout_loop, daemon=True).start()
+
 
     def setup_ui(self):
         """Set up the user interface."""
@@ -257,9 +308,9 @@ class DistributedVideoProcessingApp:
         # Send the request over MQTT
         try:
             request = VideoRequest(self.video_data, selected_class)
-            print(f"Sending message to {nodes[0]}")
-            self.update_status(f"Sending message to {nodes[0]}")
-            self.client.publish(f"/{nodes[0]}/{REQUEST_INBOX}", request.encode_message())
+            print(f"Sending message to {self.nodes[0]}")
+            self.update_status(f"Sending message to {self.nodes[0]}")
+            self.client.publish(f"/{self.nodes[0]}/{REQUEST_INBOX}", request.encode_message())
 
         except Exception as e:
             ui.notify(f"Error sending message: {str(e)}", type="negative")
@@ -274,59 +325,12 @@ class DistributedVideoProcessingApp:
         self.update_status(f"Processing complete for {class_name} in {self.video_name}")
 
 
-# Global variables for heartbeat
-nodes: list[str] = []
-node_ping: list[str] = []
-client: MQTT.Client = None  # Maybe make this part of the app class
-
-
-def heartbeat_timeout_loop():
-    global nodes, node_ping
-    while True:
-        nodes = node_ping
-        node_ping = []
-        time.sleep(1)
-
-
-def heartbeat_cb(message: Heartbeat):
-    node = message.node
-    if node not in node_ping:
-        node_ping.append(node)
-
-
-def on_connect(client: MQTT.Client, userdata, flags, reason_code, properties):
-    client.subscribe(f"{HEARTBEAT_TOPIC}")
-
-
-def on_message(client: MQTT.Client, userdata, message: MQTT.MQTTMessage):
-    if message.topic.endswith(HEARTBEAT_TOPIC):
-        hb = heartbeat_decode(message.payload.decode())
-        heartbeat_cb(hb)
-
 
 def main():
-    try:
-        global client
-        # MQTT network info. Broker always takes 192.168.0.2
-        MQTT_HOST = "192.168.1.130"  # broker ip
-        MQTT_PORT = 1883  # broker port
-        client_name = "tester"  # mqtt client name
-
-        # Initialize MQTT client
-        client = MQTT.Client(MQTT.CallbackAPIVersion.VERSION2, client_id=client_name)
-        client.on_connect = on_connect
-        client.on_message = on_message
-        client.connect(MQTT_HOST, MQTT_PORT)
-        client.loop_start()
-
-        # Start heartbeat monitoring thread
-        threading.Thread(target=heartbeat_timeout_loop, daemon=True).start()
-    except Exception as e:
-        print(f"Error connecting to MQTT broker: {e}")
-        sys.exit(1)
-
+    
     # Create the web application
     app = DistributedVideoProcessingApp()
+    app.mqtt_connect()
     app.setup_ui()
 
     # Start the UI
