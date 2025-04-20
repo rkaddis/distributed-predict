@@ -6,7 +6,7 @@ and sending them for processing.
 """
 
 import os
-import sys
+import sys  # noqa
 import tempfile
 import threading
 import time
@@ -21,22 +21,22 @@ from utils.common.Topics import CLIENT_TOPIC, HEARTBEAT_TOPIC, REQUEST_INBOX  # 
 
 
 class DistributedVideoProcessingApp:
-    def __init__(self):
+    def __init__(self, client_name: str = "client", host: str = "192.168.1.138", port: int = 1883):
         # Store uploaded video information
         self.uploaded_content = None
-        self.video_data = None
-        self.video_name = None
-        self.temp_video_path = None
+        self.input_video_data = None
+        self.input_video_name = None
+        self.temp_input_video_path = None
+        self.temp_processed_video_path = None
 
-        # UI elements
-        self.upload_area = None
-        self.class_select = None
-        self.status_label = None
-        self.video_preview = None
-
-        self.client_name = "client"  # mqtt client name
+        # MQTT set up
+        self.client_name = client_name  # mqtt client name
         self.client = MQTT.Client(MQTT.CallbackAPIVersion.VERSION2, client_id=self.client_name)
+        self.client.on_connect = self._on_connect
+        self.client.on_message = self._on_message
+        self._mqtt_connect(host, port)
 
+        # Worker nodes
         self.nodes: list[str] = []
         self.node_ping: list[str] = []
 
@@ -130,53 +130,82 @@ class DistributedVideoProcessingApp:
             79: "toothbrush",
         }
 
-    def heartbeat_timeout_loop(self):
+        # UI set up
+        self.upload_area = None
+        self.class_select = None
+        self.status_label = None
+        self.video_preview = None
+        self._setup_ui()
+
+    def _heartbeat_timeout_loop(self):
         """Updates the list of available nodes on a loop. Meant to run in a thread."""
         while True:
             self.nodes = self.node_ping
             self.node_ping = []
             time.sleep(1)
 
-    def heartbeat_cb(self, message: Heartbeat):
+    def _heartbeat_cb(self, message: Heartbeat):
         """Callback for node heartbeat messages."""
         node = message.node
         if node not in self.node_ping:
             self.node_ping.append(node)
 
-    def on_connect(self, client: MQTT.Client, userdata, flags, reason_code, properties):
+    def _on_connect(self, client: MQTT.Client, userdata, flags, reason_code, properties):
         """MQTT Client on connect, subscribe to topics."""
         client.subscribe(f"{HEARTBEAT_TOPIC}")
         client.subscribe(f"{CLIENT_TOPIC}")
 
-    def on_message(self, client: MQTT.Client, userdata, message: MQTT.MQTTMessage):
+    def _on_message(self, client: MQTT.Client, userdata, message: MQTT.MQTTMessage):
         """MQTT Client on message receipt, do callbacks."""
         if message.topic.endswith(HEARTBEAT_TOPIC):
             hb = heartbeat_decode(message.payload.decode())
-            self.heartbeat_cb(hb)
+            self._heartbeat_cb(hb)
         if message.topic.endswith(CLIENT_TOPIC):
-            with open("output_clip.mp4", "wb") as f:
-                f.write(b64decode(message.payload.decode()))
+            ################################################################################
+            # Process the video and display the result
+            self.processed_video = b64decode(message.payload.decode())
+            try:
+                if self.temp_processed_video_path and os.path.exists(self.temp_processed_video_path):
+                    os.remove(self.temp_processed_video_path)
+            except Exception as e:
+                ui.notify(f"Error deleting previous video: {str(e)}", type="negative")
+                self.update_status(f"Error deleting previous video: {str(e)}")
 
-    def mqtt_connect(self):
+            self.temp_processed_video_path = None
+            self.processed_video_preview.clear()
+
+            # Create a temporary file for the video preview
+            fd, self.temp_processed_video_path = tempfile.mkstemp()
+            with os.fdopen(fd, "wb") as tmp:
+                tmp.write(self.processed_video)
+
+            # Show the video preview
+            with self.processed_video_preview:
+                with ui.card().classes("max-w-[400px] max-h-[400px] items-center justify-center"):
+                    ui.label("Processed Video:").classes("text-lg text-gray-700 mb-2 mx-auto")
+                    ui.video(self.temp_processed_video_path, autoplay=True, muted=True, loop=True).classes(
+                        "object-contain mx-auto"
+                    )
+            self.update_status("Received processed video.")
+            ################################################################################
+
+    def _mqtt_connect(self, host, port):
         """Connects the MQTT client to the broker, and starts the heartbeat loop."""
-        # subscriptions and callbacks
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
 
         # connect to the broker
         while not self.client.is_connected():
             try:
-                self.client.connect(MQTT_HOST, MQTT_PORT)
+                self.client.connect(host, port)
                 self.client.loop_start()
             except OSError as e:
-                print(e)
+                print(f"MQTT client error: {e}")
                 time.sleep(5)
             time.sleep(0.1)
 
         # start heartbeat loop
-        threading.Thread(target=self.heartbeat_timeout_loop, daemon=True).start()
+        threading.Thread(target=self._heartbeat_timeout_loop, daemon=True).start()
 
-    def setup_ui(self):
+    def _setup_ui(self):
         """Set up the user interface."""
         with ui.header(elevated=True).classes("bg-blue-9"):
             ui.label("Distributed Video Processer").classes("text-2xl mx-auto")
@@ -234,14 +263,14 @@ class DistributedVideoProcessingApp:
         """Handle the video file upload event."""
         try:
             # Clean up previous video if it exists
-            if self.temp_video_path and os.path.exists(self.temp_video_path):
+            if self.temp_input_video_path and os.path.exists(self.temp_input_video_path):
                 try:
-                    os.remove(self.temp_video_path)
+                    os.remove(self.temp_input_video_path)
                 except Exception as e:
                     ui.notify(f"Error deleting previous video: {str(e)}", type="negative")
                     self.update_status(f"Error deleting previous video: {str(e)}")
 
-            self.temp_video_path = None
+            self.temp_input_video_path = None
             self.video_preview.clear()
 
             # Verify we have content to process
@@ -253,24 +282,26 @@ class DistributedVideoProcessingApp:
             e.content.seek(0)
             content_data = e.content.read()
             self.uploaded_content = e
-            self.video_data = b64encode(content_data).decode()
-            self.video_name = e.name
+            self.input_video_data = b64encode(content_data).decode()
+            self.input_video_name = e.name
 
             # Create a temporary file for the video preview
-            fd, self.temp_video_path = tempfile.mkstemp(suffix=os.path.splitext(e.name)[1])
+            fd, self.temp_input_video_path = tempfile.mkstemp(suffix=os.path.splitext(e.name)[1])
             with os.fdopen(fd, "wb") as tmp:
                 tmp.write(content_data)
 
             # Show the video preview
             with self.video_preview:
                 with ui.column().classes("max-w-[400px] max-h-[400px] items-center justify-center"):
-                    ui.video(self.temp_video_path, autoplay=True, muted=True, loop=True).classes("")
+                    ui.video(self.temp_input_video_path, autoplay=True, muted=True, loop=True).classes(
+                        "object-contain mx-auto"
+                    )
                     ui.label(f"File: {e.name} ({len(content_data) / (1024 * 1024):.2f} MB)").classes(
                         "text-sm text-gray-700 mt-2 mx-auto text-wrap"
                     )
 
             # Update status
-            self.update_status(f"Video [{self.video_name}] ready for processing")
+            self.update_status(f"Video [{self.input_video_name}] ready for processing")
 
         except Exception as e:
             ui.notify(f"Upload error: {str(e)}", type="negative")
@@ -285,7 +316,7 @@ class DistributedVideoProcessingApp:
     def process_video(self) -> None:
         """Handle the process button click."""
         # Check if we have a video
-        if not self.video_data:
+        if not self.input_video_data:
             ui.notify("Please upload a video file first", type="warning")
             return
 
@@ -302,14 +333,14 @@ class DistributedVideoProcessingApp:
         self.update_status(f"Processing video to detect {class_name}...")
 
         # Print processing information
-        print(f"Processing video: {self.video_name}")
-        print(f"Video size: {len(self.video_data) / (1024 * 1024):.2f} MB")
+        print(f"Processing video: {self.input_video_name}")
+        print(f"Video size: {len(self.input_video_data) / (1024 * 1024):.2f} MB")
         print(f"Selected class ID: {selected_class} ({class_name})")
 
         ################################################################################
         # Send the request over MQTT
         try:
-            request = VideoRequest(self.video_data, selected_class)
+            request = VideoRequest(self.input_video_data, selected_class)
             print(f"Sending message to {self.nodes[0]}")
             self.update_status(f"Sending message to {self.nodes[0]}")
             self.client.publish(f"/{self.nodes[0]}/{REQUEST_INBOX}", request.encode_message())
@@ -319,19 +350,12 @@ class DistributedVideoProcessingApp:
             self.update_status(f"Error sending message: {str(e)}")
             print(f"Error sending message: {str(e)}")
             return
-
-        # Recieve the response here or make a callback
-
         ################################################################################
-        # Update status after "processing" is complete
-        self.update_status(f"Processing complete for {class_name} in {self.video_name}")
 
 
 def main():
     # Create the web application
-    app = DistributedVideoProcessingApp()
-    app.mqtt_connect()
-    app.setup_ui()
+    app = DistributedVideoProcessingApp(client_name="client", host=MQTT_HOST, port=MQTT_PORT)  # noqa
 
     # Start the UI
     ui.run(title="Distributed Video Processing Client", reload=False)
