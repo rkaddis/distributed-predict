@@ -7,8 +7,8 @@ from utils.common.Topics import *
 from utils.common.Messages import Heartbeat, heartbeat_decode, VideoRequest
 
 # MQTT network info. Broker always takes 192.168.0.2
-MQTT_HOST = "192.168.1.130" # broker ip
-MQTT_PORT = 1883 # broker port
+MQTT_HOST = "192.168.1.130"  # broker ip
+MQTT_PORT = 1883  # broker port
 
 # mqtt name of this client, random base64 string
 client_name = "tester"
@@ -16,8 +16,9 @@ client_name = "tester"
 # mqtt client
 client = MQTT.Client(MQTT.CallbackAPIVersion.VERSION2, client_id=client_name)
 
-nodes : list[str] = []
-node_ping : list[str] = []
+nodes: list[str] = []
+node_ping: list[str] = []
+
 
 def heartbeat_timeout_loop():
     global nodes, node_ping
@@ -25,22 +26,24 @@ def heartbeat_timeout_loop():
         nodes = node_ping
         node_ping = []
         time.sleep(1)
-        
 
-def heartbeat_cb(message : Heartbeat):
+
+def heartbeat_cb(message: Heartbeat):
     node = message.node
     if node not in node_ping:
         node_ping.append(node)
 
-def on_connect(client : MQTT.Client, userdata, flags, reason_code, properties):
+
+def on_connect(client: MQTT.Client, userdata, flags, reason_code, properties):
     client.subscribe(f"{HEARTBEAT_TOPIC}")
-    
-def on_message(client : MQTT.Client, userdata, message : MQTT.MQTTMessage):
-    if(message.topic.endswith(HEARTBEAT_TOPIC)):
+
+
+def on_message(client: MQTT.Client, userdata, message: MQTT.MQTTMessage):
+    if message.topic.endswith(HEARTBEAT_TOPIC):
         hb = heartbeat_decode(message.payload.decode())
         heartbeat_cb(hb)
-        
-    
+
+
 client.on_connect = on_connect
 client.on_message = on_message
 
