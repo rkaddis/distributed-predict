@@ -253,6 +253,8 @@ class DistributedVideoProcessingApp:
                     "color=white text-color=grey-9 ripple unelevated outline stretch"
                 ).classes("").bind_visibility_from(self.class_select, "value")
 
+            self.video_preview = ui.element("div").classes("w-full")
+
             ### 4. STATUS DISPLAY
             ui.separator().classes("my-4")
             with ui.row().classes("w-full items-center justify-center"):
