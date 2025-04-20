@@ -92,7 +92,7 @@ class Worker:
             time.sleep(0.01)
 
         # return the results to the client
-        start_frame, end_frame = max_subarray(dict(sorted(self.results_dict)))
+        start_frame, end_frame = max_subarray(dict(sorted(self.results_dict.items())))
         fourcc = cv.VideoWriter_fourcc(*'mp4v') # Be sure to use lower case
         tf = tempfile.NamedTemporaryFile(suffix=".mp4")
         rows, cols, _ = self.image_dict[0].shape
