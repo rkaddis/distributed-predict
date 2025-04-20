@@ -16,8 +16,9 @@ from nicegui import ui
 from nicegui.events import UploadEventArguments
 from paho.mqtt import client as MQTT
 from utils.common.Messages import Heartbeat, VideoRequest, heartbeat_decode
-from utils.common.Topics import CLIENT_TOPIC, HEARTBEAT_TOPIC, REQUEST_INBOX  # noqa
 from utils.common.MQTT_Broker import MQTT_HOST, MQTT_PORT
+from utils.common.Topics import CLIENT_TOPIC, HEARTBEAT_TOPIC, REQUEST_INBOX  # noqa
+
 
 class DistributedVideoProcessingApp:
     def __init__(self):
@@ -171,10 +172,9 @@ class DistributedVideoProcessingApp:
                 print(e)
                 time.sleep(5)
             time.sleep(0.1)
-        
+
         # start heartbeat loop
         threading.Thread(target=self.heartbeat_timeout_loop, daemon=True).start()
-
 
     def setup_ui(self):
         """Set up the user interface."""
@@ -327,9 +327,7 @@ class DistributedVideoProcessingApp:
         self.update_status(f"Processing complete for {class_name} in {self.video_name}")
 
 
-
 def main():
-    
     # Create the web application
     app = DistributedVideoProcessingApp()
     app.mqtt_connect()

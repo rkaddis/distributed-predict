@@ -1,30 +1,30 @@
 import json
 
+
 class Message:
-
-    def __init__(self, content : dict = {}):
+    def __init__(self, content: dict = {}):
         self.content = content
-
 
     def encode_message(self) -> str:
         """
         Encodes a Munch object into a JSON string.
         """
-        return json.dumps(self.content)     
+        return json.dumps(self.content)
 
     def __del__(self):
-        del(self.content)
+        del self.content
 
-def message_decode(content : str) -> Message:
+
+def message_decode(content: str) -> Message:
     return Message(json.loads(content))
 
+
 class RBMessage(Message):
+    state: str = None
+    subject: str = None
+    data: str = None
 
-    state : str = None
-    subject : str = None
-    data : str = None
-
-    def __init__(self, state : str, subject : str, data : str):
+    def __init__(self, state: str, subject: str, data: str):
         super().__init__({})
         self.state = state
         self.subject = subject
@@ -36,20 +36,21 @@ class RBMessage(Message):
 
     def __eq__(self, other):
         return self.state == other.state and self.subject == other.subject and self.data == other.data
-    
+
     def __del__(self):
-        del(self.content)
-    
-def rbmessage_decode(content : str) -> RBMessage:
+        del self.content
+
+
+def rbmessage_decode(content: str) -> RBMessage:
     d = json.loads(content)
     return RBMessage(d["state"], d["subject"], d["data"])
 
+
 class Heartbeat(Message):
+    node: str
+    status: str
 
-    node : str
-    status : str
-
-    def __init__(self, node = "", status = ""):
+    def __init__(self, node="", status=""):
         super().__init__({})
         self.node = node
         self.status = status
@@ -58,18 +59,19 @@ class Heartbeat(Message):
         self.content["status"] = status
 
     def __del__(self):
-        del(self.content)
+        del self.content
 
-def heartbeat_decode(content : str) -> Heartbeat:
+
+def heartbeat_decode(content: str) -> Heartbeat:
     data = json.loads(content)
     return Heartbeat(data["node"], data["status"])
 
+
 class VideoRequest(Message):
+    video: str
+    target: int
 
-    video : str
-    target : int
-
-    def __init__(self, video = "", target = 0):
+    def __init__(self, video="", target=0):
         super().__init__({})
         self.video = video
         self.target = target
@@ -78,9 +80,9 @@ class VideoRequest(Message):
         self.content["target"] = target
 
     def __del__(self):
-        del(self.content)
+        del self.content
 
-def videorequest_decode(content : str) -> VideoRequest:
+
+def videorequest_decode(content: str) -> VideoRequest:
     data = json.loads(content)
     return VideoRequest(data["video"], data["target"])
-

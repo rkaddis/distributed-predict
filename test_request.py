@@ -1,10 +1,10 @@
-from paho.mqtt import client as MQTT
-import time
 import threading
+import time
 from base64 import b64encode
 
-from utils.common.Topics import *
-from utils.common.Messages import Heartbeat, heartbeat_decode, VideoRequest
+from paho.mqtt import client as MQTT
+from utils.common.Messages import Heartbeat, VideoRequest, heartbeat_decode
+from utils.common.Topics import HEARTBEAT_TOPIC, REQUEST_INBOX
 
 # MQTT network info. Broker always takes 192.168.0.2
 MQTT_HOST = "192.168.1.130"  # broker ip

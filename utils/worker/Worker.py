@@ -1,39 +1,47 @@
-from paho.mqtt import client as MQTT
 import secrets
-import time
-import threading
-from copy import deepcopy
-from base64 import b64decode, b64encode
-import cv2 as cv
-import numpy as np
 import tempfile
+import threading
+import time
+from base64 import b64decode, b64encode
+from copy import deepcopy
 
-from ..common.Topics import *
-from .ReliableBroadcast import RBInstance
-from ..common.Messages import RBMessage, rbmessage_decode, Heartbeat, heartbeat_decode, VideoRequest, videorequest_decode
+import cv2 as cv
+import numpy as np  # noqa
+from paho.mqtt import client as MQTT
+
+from ..common.Messages import (
+    Heartbeat,
+    RBMessage,
+    VideoRequest,
+    heartbeat_decode,
+    rbmessage_decode,
+    videorequest_decode,
+)
+from ..common.MQTT_Broker import MQTT_HOST, MQTT_PORT
+from ..common.Topics import HEARTBEAT_TOPIC, BROADCAST_TOPIC, CMD_INBOX, REQUEST_INBOX, CLIENT_TOPIC
 from .ImagePredict import ImagePredictor
 from .MaxSubarray import max_subarray
-from ..common.MQTT_Broker import MQTT_HOST, MQTT_PORT
+from .ReliableBroadcast import RBInstance
+
 
 class Worker:
+    client: MQTT.Client  # mqtt client
+    client_name: str  # client's unique name
+    leader = False  # whether this node is the leader
+    busy = False  # whether this node is processing a task
 
-    client : MQTT.Client # mqtt client
-    client_name : str # client's unique name
-    leader = False # whether this node is the leader
-    busy = False # whether this node is processing a task
-
-    nodes : dict = {} # nodes and their statuses
-    node_ping : dict = {} # intermediate dict before the main one
-    broadcast_queue : list[RBInstance] = [] # queue of pending reliable broadcasts
-    image_dict : dict = {}
-    results_dict : dict = {}
-    processing_queue : list[int] = []
-    predictor : ImagePredictor
-    free_nodes : list[str] = []
-    target : int = 0
+    nodes: dict = {}  # nodes and their statuses
+    node_ping: dict = {}  # intermediate dict before the main one
+    broadcast_queue: list[RBInstance] = []  # queue of pending reliable broadcasts
+    image_dict: dict = {}
+    results_dict: dict = {}
+    processing_queue: list[int] = []
+    predictor: ImagePredictor
+    free_nodes: list[str] = []
+    target: int = 0
 
     def __init__(self):
-        self.client_name = secrets.token_urlsafe(8) # set client name as random string
+        self.client_name = secrets.token_urlsafe(8)  # set client name as random string
         self.client = MQTT.Client(MQTT.CallbackAPIVersion.VERSION2, client_id=self.client_name)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -49,15 +57,14 @@ class Worker:
                 print(e)
                 time.sleep(5)
         print(f"Connected as {self.client_name}")
-         
-        threading.Thread(target=self.heartbeat_timeout_loop, daemon=True).start() # start heartbeat
+
+        threading.Thread(target=self.heartbeat_timeout_loop, daemon=True).start()  # start heartbeat
 
         while self.client.is_connected():
             hb_message = Heartbeat(node=self.client_name, status="free" if not self.busy else "busy")
             self.client.publish(f"{HEARTBEAT_TOPIC}", hb_message.encode_message())
-            del(hb_message)
+            del hb_message
             time.sleep(0.1)
-
 
     # tracks nodes' heartbeats.
     def heartbeat_timeout_loop(self):
@@ -67,7 +74,6 @@ class Worker:
             time.sleep(0.5)
 
     def leader_loop(self):
-
         # distribute tasks to open nodes
         while len(self.results_dict) != len(self.image_dict):
             for node in self.free_nodes:
@@ -84,13 +90,13 @@ class Worker:
                     self.free_nodes.remove(node)
                 else:
                     self.processing_queue = []
-                
+
             # print(f"Frames remaining: {len(self.image_dict) - len(self.results_dict)}")
             time.sleep(0.01)
 
         # return the results to the client
         start_frame, end_frame = max_subarray(dict(sorted(self.results_dict.items())))
-        fourcc = cv.VideoWriter_fourcc(*'mp4v') # Be sure to use lower case
+        fourcc = cv.VideoWriter_fourcc(*"mp4v")  # Be sure to use lower case
         tf = tempfile.NamedTemporaryFile(suffix=".mp4")
         rows, cols, _ = self.image_dict[0].shape
         out = cv.VideoWriter(tf.name, fourcc, 30.0, (cols, rows))
@@ -101,12 +107,12 @@ class Worker:
         clip = ""
         with open(tf.name, "rb") as f:
             clip = f.read()
-        
+
         self.client.publish(CLIENT_TOPIC, b64encode(clip).decode())
         print("Sent results back to client.")
 
-    # adds a node to the list of known nodes.        
-    def heartbeat_cb(self, message : Heartbeat):
+    # adds a node to the list of known nodes.
+    def heartbeat_cb(self, message: Heartbeat):
         node = message.node
         if node not in self.node_ping:
             self.node_ping[node] = message.status
@@ -114,15 +120,15 @@ class Worker:
             self.free_nodes.append(node)
 
     # gets the request from the user and broadcasts it.
-    def request_cb(self, message : VideoRequest):
+    def request_cb(self, message: VideoRequest):
         self.leader = True
         initial_message = RBMessage("initial", "client", message.encode_message())
         self.client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
-        del(initial_message)
+        del initial_message
 
     # follows the reliable broadcast protocol.
-    def broadcast_cb(self, rb_message : RBMessage):
-        if rb_message.state == 'initial':
+    def broadcast_cb(self, rb_message: RBMessage):
+        if rb_message.state == "initial":
             self.broadcast_queue.append(RBInstance(self.client, self.nodes, rb_message))
         else:
             index = -1
@@ -135,8 +141,8 @@ class Worker:
             out = self.broadcast_queue[index].handle_message(rb_message)
             if out is not None:
                 self.broadcast_queue.pop(index)
-                
-                if out.subject == "client": # client's video request
+
+                if out.subject == "client":  # client's video request
                     vr = videorequest_decode(out.data)
                     video_bytes = b64decode(vr.video)
                     tf = tempfile.NamedTemporaryFile(suffix=".mp4")
@@ -145,17 +151,17 @@ class Worker:
 
                     check, im = cap.read()
                     frame = 0
-                    while check: 
+                    while check:
                         self.image_dict[frame] = im
                         check, im = cap.read()
                         frame += 1
-                    
+
                     self.target = vr.target
                     print(f"Got {len(self.image_dict.keys())} frames")
-                    if(self.leader):
+                    if self.leader:
                         threading.Thread(target=self.leader_loop, daemon=True).start()
 
-                elif out.subject.isdigit(): # frame data
+                elif out.subject.isdigit():  # frame data
                     frame_id = int(out.subject)
                     self.results_dict[frame_id] = int(out.data) if int(out.data) > 0 else -1
                     try:
@@ -163,8 +169,7 @@ class Worker:
                     except Exception:
                         pass
 
-
-    def command_cb(self, task_id : int):
+    def command_cb(self, task_id: int):
         print(f"Processing task {task_id}")
         self.busy = True
         image = self.image_dict[task_id]
@@ -174,30 +179,25 @@ class Worker:
         self.busy = False
         print(f"Done with task {task_id}")
 
-
-
     # subscribe to topics
-    def on_connect(self, client : MQTT.Client, userdata, flags, reason_code, properties):
+    def on_connect(self, client: MQTT.Client, userdata, flags, reason_code, properties):
         client.subscribe(f"{HEARTBEAT_TOPIC}")
         client.subscribe(f"/{self.client_name}/{REQUEST_INBOX}")
         client.subscribe(f"{BROADCAST_TOPIC}")
         client.subscribe(f"/{self.client_name}/{CMD_INBOX}")
-    
+
     # specify callbacks
-    def on_message(self, client : MQTT.Client, userdata, message : MQTT.MQTTMessage):
-        if(message.topic.endswith(HEARTBEAT_TOPIC)):
+    def on_message(self, client: MQTT.Client, userdata, message: MQTT.MQTTMessage):
+        if message.topic.endswith(HEARTBEAT_TOPIC):
             hb = heartbeat_decode(message.payload.decode())
             self.heartbeat_cb(hb)
-            del(hb)
-        elif(message.topic.endswith(REQUEST_INBOX)):
+            del hb
+        elif message.topic.endswith(REQUEST_INBOX):
             vr = videorequest_decode(message.payload.decode())
             self.request_cb(vr)
-        elif(message.topic.endswith(BROADCAST_TOPIC)):
+        elif message.topic.endswith(BROADCAST_TOPIC):
             rb_message = rbmessage_decode(message.payload.decode())
             self.broadcast_cb(rb_message)
-            del(rb_message)
-        elif(message.topic.endswith(CMD_INBOX)):
+            del rb_message
+        elif message.topic.endswith(CMD_INBOX):
             threading.Thread(target=self.command_cb, args=[int(message.payload.decode())], daemon=True).start()
-            
-
-    

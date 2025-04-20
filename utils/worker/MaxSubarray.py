@@ -1,6 +1,4 @@
-
-
-def max_subarray(arr : dict) -> tuple[int,int]:
+def max_subarray(arr: dict) -> tuple[int, int]:
     """
     Takes in a dict with integer values, and returns starting and ending index of the maximum subarray (subdict?)
     Uses Kadane's algorithm, https://en.wikipedia.org/wiki/Maximum_subarray_problem
@@ -25,5 +23,5 @@ def max_subarray(arr : dict) -> tuple[int,int]:
             best_sum = curr_sum
             best_start = curr_start
             best_end = curr_end
-        
+
     return (best_start, best_end)
