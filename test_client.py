@@ -28,6 +28,8 @@ class DistributedVideoProcessingApp:
         self.input_video_name = None
         self.temp_input_video_path = None
         self.temp_processed_video_path = None
+        self.processing_start_ts = None
+        self.processing_end_ts = None
 
         # MQTT set up
         self.client_name = client_name  # mqtt client name
@@ -187,6 +189,8 @@ class DistributedVideoProcessingApp:
                         "object-contain mx-auto"
                     )
             self.update_status("Received processed video.")
+            self.processing_end_ts = time.time()
+            ui.notify(f"Total processing time: {round(self.processing_start_ts - self.processing_end_ts, 2)} seconds.")
             ################################################################################
 
     def _mqtt_connect(self, host, port):
@@ -346,6 +350,7 @@ class DistributedVideoProcessingApp:
             print(f"Sending message to {self.nodes[0]}")
             self.update_status(f"Sending message to {self.nodes[0]}")
             self.client.publish(f"/{self.nodes[0]}/{REQUEST_INBOX}", request.encode_message())
+            self.processing_start_ts = time.time()
 
         except Exception as e:
             ui.notify(f"Error sending message: {str(e)}", type="negative")
