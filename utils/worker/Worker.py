@@ -131,7 +131,7 @@ class Worker:
     def broadcast_cb(self, rb_message: RBMessage):
         if rb_message.state == "initial":
             if rb_message.subject == "client":
-                vr = videorequest_decode(out.data)
+                vr = videorequest_decode(rb_message.data)
                 video_bytes = b64decode(vr.video)
                 tf = tempfile.NamedTemporaryFile(suffix=".mp4")
                 tf.write(video_bytes)
