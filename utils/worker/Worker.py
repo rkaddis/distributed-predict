@@ -39,7 +39,7 @@ class Worker:
     predictor: ImagePredictor # the YOLO image processor
     free_nodes: list[str] = [] # list of nodes that are not busy
     target: int = 0 # the target object
-    bytes_received : int = 0 # total number of bytes received
+    processing_time : float = 0 # total time spent processing frames
 
     def __init__(self):
         self.client_name = secrets.token_urlsafe(8)  # set client name as random string
@@ -110,7 +110,7 @@ class Worker:
 
         self.client.publish(CLIENT_TOPIC, b64encode(clip).decode())
         print("Sent results back to client.")
-        print(f"Total bytes received: {self.bytes_received}B")
+        print(f"Total time spent processing: {round(self.processing_time, 2)} seconds")
 
     # adds a node to the list of known nodes.
     def heartbeat_cb(self, message: Heartbeat):
@@ -175,7 +175,9 @@ class Worker:
         print(f"Processing task {task_id}")
         self.busy = True
         image = self.image_dict[task_id]
+        start_ts = time.time()
         hits = self.predictor.image_predict(image, target=self.target)
+        self.processing_time += time.time() - start_ts
         initial_message = RBMessage("initial", str(task_id), str(hits))
         self.client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
         self.busy = False
@@ -190,7 +192,6 @@ class Worker:
 
     # specify callbacks
     def on_message(self, client: MQTT.Client, userdata, message: MQTT.MQTTMessage):
-        self.bytes_received += len(message.payload)
         if message.topic.endswith(HEARTBEAT_TOPIC):
             hb = heartbeat_decode(message.payload.decode())
             self.heartbeat_cb(hb)
