@@ -8,16 +8,24 @@ from ..common.Topics import BROADCAST_TOPIC
 
 
 class RBInstance:
-    def __init__(self, client: MQTTClient.Client, nodes: list[str], initial_message: RBMessage):
+    def __init__(self, client: MQTTClient.Client, nodes: list[str], initial_message: RBMessage, use_hash : bool = False):
         self.client = client  # mqtt client
         self.nodes = nodes  # list of nodes in network
         self.initial_message = initial_message  # the initial message/state of the RB protocol
         self.subject = initial_message.subject  # the subject of the message
         self.echo_messages: list[RBMessage] = []
         self.ready_messages: list[RBMessage] = []
+        self.use_hash = use_hash
+        self.hash_value = None
+        
+        if self.use_hash:
+            self.hash_value = hash(initial_message.data)
 
         # send out your initial contents as an echo
-        echo_message = RBMessage("echo", self.subject, initial_message.data)
+        if self.use_hash:
+            echo_message = RBMessage("echo", self.subject, str(self.hash_value))
+        else:
+            echo_message = RBMessage("echo", self.subject, initial_message.data)
         self.send_all(echo_message)
 
     def send_all(self, message: RBMessage):
@@ -54,7 +62,10 @@ class RBInstance:
             max_count, max_data = self.count_alike_messages(self.echo_messages)
 
             if max_count >= (n + f) // 2:
-                ready_message = RBMessage("ready", self.initial_message.subject, max_data)
+                if self.use_hash:
+                    ready_message = RBMessage("ready", self.initial_message.subject, hash(max_data))
+                else:
+                    ready_message = RBMessage("ready", self.initial_message.subject, max_data)
                 self.send_all(ready_message)
 
         elif message.state == "ready":
@@ -62,8 +73,15 @@ class RBInstance:
             max_count, max_data = self.count_alike_messages(self.ready_messages)
 
             if max_count >= (2 * f + 1):
-                accept_message = RBMessage("accepted", self.initial_message.subject, max_data)
-                return accept_message
+                if self.use_hash:
+                    if hash(max_data) == self.hash_value:
+                        accept_message = RBMessage("accepted", self.initial_message.subject, self.initial_message.data)
+                        return accept_message
+                    else:
+                        raise("Hash was bad!")
+                else:
+                    accept_message = RBMessage("accepted", self.initial_message.subject, max_data)
+                    return accept_message
 
     def __eq__(self, other):
         return self.subject == other.subject
