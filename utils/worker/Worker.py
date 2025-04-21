@@ -33,12 +33,12 @@ class Worker:
     nodes: dict = {}  # nodes and their statuses
     node_ping: dict = {}  # intermediate dict before the main one
     broadcast_queue: list[RBInstance] = []  # queue of pending reliable broadcasts
-    image_dict: dict = {}
-    results_dict: dict = {}
-    processing_queue: list[int] = []
-    predictor: ImagePredictor
-    free_nodes: list[str] = []
-    target: int = 0
+    image_dict: dict = {} # dictionary of video frames
+    results_dict: dict = {} # dictionary of frame results
+    processing_queue: list[int] = [] # list of frames currently being processed
+    predictor: ImagePredictor # the YOLO image processor
+    free_nodes: list[str] = [] # list of nodes that are not busy
+    target: int = 0 # the target object
 
     def __init__(self):
         self.client_name = secrets.token_urlsafe(8)  # set client name as random string
@@ -91,7 +91,6 @@ class Worker:
                 else:
                     self.processing_queue = []
 
-            # print(f"Frames remaining: {len(self.image_dict) - len(self.results_dict)}")
             time.sleep(0.01)
 
         # return the results to the client
@@ -169,6 +168,7 @@ class Worker:
                     except Exception:
                         pass
 
+    # handle a command from the leader
     def command_cb(self, task_id: int):
         print(f"Processing task {task_id}")
         self.busy = True

@@ -2,6 +2,9 @@ import json
 
 
 class Message:
+    """
+    Base Message class, used for encoding/decoding over MQTT topics.
+    """
     def __init__(self, content: dict = {}):
         self.content = content
 
@@ -16,10 +19,14 @@ class Message:
 
 
 def message_decode(content: str) -> Message:
+    """Decodes an MQTT string into a Message."""
     return Message(json.loads(content))
 
 
 class RBMessage(Message):
+    """
+    Message that contains fields relevant to Reliable Broadcast.
+    """
     state: str = None
     subject: str = None
     data: str = None
@@ -42,11 +49,15 @@ class RBMessage(Message):
 
 
 def rbmessage_decode(content: str) -> RBMessage:
+    """Decodes an MQTT string into an RBMessage."""
     d = json.loads(content)
     return RBMessage(d["state"], d["subject"], d["data"])
 
 
 class Heartbeat(Message):
+    """
+    Message that contains fields for node heartbeats.
+    """
     node: str
     status: str
 
@@ -63,11 +74,15 @@ class Heartbeat(Message):
 
 
 def heartbeat_decode(content: str) -> Heartbeat:
+    """Decodes an MQTT string into a Heartbeat."""
     data = json.loads(content)
     return Heartbeat(data["node"], data["status"])
 
 
 class VideoRequest(Message):
+    """
+    Message that contains fields for client video requests.
+    """
     video: str
     target: int
 
@@ -84,5 +99,6 @@ class VideoRequest(Message):
 
 
 def videorequest_decode(content: str) -> VideoRequest:
+    """Decodes an MQTT string into a VideoRequest."""
     data = json.loads(content)
     return VideoRequest(data["video"], data["target"])
