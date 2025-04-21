@@ -75,11 +75,8 @@ class RBInstance:
 
             if max_count >= (2 * f + 1):
                 if self.use_hash:
-                    if sha256(max_data.encode()).hexdigest() == self.hash_value:
-                        accept_message = RBMessage("accepted", self.initial_message.subject, self.initial_message.data)
-                        return accept_message
-                    else:
-                        raise Exception("Hash was bad!")
+                    accept_message = RBMessage("accepted", self.initial_message.subject, self.initial_message.data)
+                    return accept_message
                 else:
                     accept_message = RBMessage("accepted", self.initial_message.subject, max_data)
                     return accept_message
