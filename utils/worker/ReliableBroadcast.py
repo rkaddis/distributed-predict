@@ -2,6 +2,7 @@ import json  # noqa
 
 from munch import Munch, munchify  # noqa
 from paho.mqtt import client as MQTTClient
+from hashlib import sha256
 
 from ..common.Messages import RBMessage, rbmessage_decode  # noqa
 from ..common.Topics import BROADCAST_TOPIC
@@ -19,7 +20,7 @@ class RBInstance:
         self.hash_value = None
         
         if self.use_hash:
-            self.hash_value = hash(initial_message.data)
+            self.hash_value = sha256(initial_message.data)
 
         # send out your initial contents as an echo
         if self.use_hash:
@@ -63,7 +64,7 @@ class RBInstance:
 
             if max_count >= (n + f) // 2:
                 if self.use_hash:
-                    ready_message = RBMessage("ready", self.initial_message.subject, hash(max_data))
+                    ready_message = RBMessage("ready", self.initial_message.subject, sha256(max_data))
                 else:
                     ready_message = RBMessage("ready", self.initial_message.subject, max_data)
                 self.send_all(ready_message)
@@ -74,11 +75,11 @@ class RBInstance:
 
             if max_count >= (2 * f + 1):
                 if self.use_hash:
-                    if hash(max_data) == self.hash_value:
+                    if sha256(max_data) == self.hash_value:
                         accept_message = RBMessage("accepted", self.initial_message.subject, self.initial_message.data)
                         return accept_message
                     else:
-                        raise("Hash was bad!")
+                        raise Exception("Hash was bad!")
                 else:
                     accept_message = RBMessage("accepted", self.initial_message.subject, max_data)
                     return accept_message
