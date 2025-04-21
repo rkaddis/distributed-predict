@@ -30,6 +30,9 @@ class DistributedVideoProcessingApp:
         self.temp_processed_video_path = None
         self.processing_start_ts = None
         self.processing_end_ts = None
+        # Worker nodes
+        self.nodes: list[str] = []
+        self.node_ping: list[str] = []
 
         # MQTT set up
         self.client_name = client_name  # mqtt client name
@@ -38,9 +41,7 @@ class DistributedVideoProcessingApp:
         self.client.on_message = self._on_message
         self._mqtt_connect(host, port)
 
-        # Worker nodes
-        self.nodes: list[str] = []
-        self.node_ping: list[str] = []
+        
 
         # Acceptable video formats
         self.valid_video_types = [
@@ -176,10 +177,10 @@ class DistributedVideoProcessingApp:
             self.temp_processed_video_path = None
             self.processed_video_preview.clear()
 
-            # Create a temporary file for the video preview
-            fd, self.temp_processed_video_path = tempfile.mkstemp()
-            with os.fdopen(fd, "wb") as tmp:
-                tmp.write(self.processed_video)
+            # Create a temporary file for the video preview            
+            tf = tempfile.NamedTemporaryFile(suffix=".mp4")
+            self.temp_processed_video_path = tf.name
+            tf.write(self.processed_video)
 
             # Show the video preview
             with self.processed_video_preview:
@@ -190,7 +191,7 @@ class DistributedVideoProcessingApp:
                     )
             self.update_status("Received processed video.")
             self.processing_end_ts = time.time()
-            ui.notify(f"Total processing time: {round(self.processing_start_ts - self.processing_end_ts, 2)} seconds.")
+            self.update_status(f"Total processing time: {round(self.processing_end_ts - self.processing_start_ts, 2)} seconds.")
             ################################################################################
 
     def _mqtt_connect(self, host, port):
@@ -257,7 +258,7 @@ class DistributedVideoProcessingApp:
                     "color=white text-color=grey-9 ripple unelevated outline stretch"
                 ).classes("").bind_visibility_from(self.class_select, "value")
 
-            self.video_preview = ui.element("div").classes("w-full")
+            self.processed_video_preview = ui.element("div").classes("w-full")
 
             ### 4. STATUS DISPLAY
             ui.separator().classes("my-4")
@@ -298,11 +299,12 @@ class DistributedVideoProcessingApp:
 
             # Show the video preview
             with self.video_preview:
-                with ui.column().classes("max-w-[400px] max-h-[400px] items-center justify-center"):
+                # with ui.column().classes("max-w-[400px] max-h-[400px] items-center justify-center"):
+                with ui.column().classes("items-center justify-center"):
                     ui.video(self.temp_input_video_path, autoplay=True, muted=True, loop=True).classes(
                         "object-contain mx-auto"
                     )
-                    ui.label(f"File: {e.name} ({len(content_data) / (1024 * 1024):.2f} MB)").classes(
+                    ui.label(f"File: {e.name} ({len(content_data) / (1000 * 1000):.2f} MB)").classes(
                         "text-sm text-gray-700 mt-2 mx-auto text-wrap"
                     )
 
