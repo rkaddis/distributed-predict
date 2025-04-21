@@ -1,7 +1,7 @@
 # /usr/bin/bash
 
 sudo echo
-pip install --break-system-packages -r requirements.txt worker
+pip install --break-system-packages -r requirements.txt
 input=""
 read -p "Install as a service? [Y/n]: " input
 if [[ input == "y" ]]
