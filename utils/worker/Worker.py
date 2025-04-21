@@ -130,7 +130,26 @@ class Worker:
     # follows the reliable broadcast protocol.
     def broadcast_cb(self, rb_message: RBMessage):
         if rb_message.state == "initial":
-            self.broadcast_queue.append(RBInstance(self.client, self.nodes, rb_message))
+            if rb_message.subject == "client":
+                vr = videorequest_decode(out.data)
+                video_bytes = b64decode(vr.video)
+                tf = tempfile.NamedTemporaryFile(suffix=".mp4")
+                tf.write(video_bytes)
+                cap = cv.VideoCapture(tf.name)
+
+                check, im = cap.read()
+                frame = 0
+                while check:
+                    self.image_dict[frame] = im
+                    check, im = cap.read()
+                    frame += 1
+
+                self.target = vr.target
+                print(f"Got {len(self.image_dict.keys())} frames")
+                if self.leader:
+                    threading.Thread(target=self.leader_loop, daemon=True).start()
+            else:
+                self.broadcast_queue.append(RBInstance(self.client, self.nodes, rb_message))
         else:
             index = -1
             for i in range(len(self.broadcast_queue)):
@@ -143,26 +162,26 @@ class Worker:
             if out is not None:
                 self.broadcast_queue.pop(index)
 
-                if out.subject == "client":  # client's video request
-                    vr = videorequest_decode(out.data)
-                    video_bytes = b64decode(vr.video)
-                    tf = tempfile.NamedTemporaryFile(suffix=".mp4")
-                    tf.write(video_bytes)
-                    cap = cv.VideoCapture(tf.name)
+                # if out.subject == "client":  # client's video request
+                #     vr = videorequest_decode(out.data)
+                #     video_bytes = b64decode(vr.video)
+                #     tf = tempfile.NamedTemporaryFile(suffix=".mp4")
+                #     tf.write(video_bytes)
+                #     cap = cv.VideoCapture(tf.name)
 
-                    check, im = cap.read()
-                    frame = 0
-                    while check:
-                        self.image_dict[frame] = im
-                        check, im = cap.read()
-                        frame += 1
+                #     check, im = cap.read()
+                #     frame = 0
+                #     while check:
+                #         self.image_dict[frame] = im
+                #         check, im = cap.read()
+                #         frame += 1
 
-                    self.target = vr.target
-                    print(f"Got {len(self.image_dict.keys())} frames")
-                    if self.leader:
-                        threading.Thread(target=self.leader_loop, daemon=True).start()
+                #     self.target = vr.target
+                #     print(f"Got {len(self.image_dict.keys())} frames")
+                #     if self.leader:
+                #         threading.Thread(target=self.leader_loop, daemon=True).start()
 
-                elif out.subject.isdigit():  # frame data
+                if out.subject.isdigit():  # frame data
                     frame_id = int(out.subject)
                     self.results_dict[frame_id] = int(out.data) if int(out.data) > 0 else -1
                     try:
