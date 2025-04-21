@@ -48,7 +48,7 @@ class RBInstance:
 
     def handle_message(self, message: RBMessage) -> RBMessage | None:
         n = len(self.nodes)
-        f = (n + 1) // 3
+        f = (n - 1) // 3
         if message.state == "echo":
             self.echo_messages.append(message)
             max_count, max_data = self.count_alike_messages(self.echo_messages)
