@@ -174,9 +174,9 @@ class Worker:
         print(f"Processing task {task_id}")
         self.busy = True
         image = self.image_dict[task_id]
-        start_ts = time.time()
+        # start_ts = time.time()
         hits = self.predictor.image_predict(image, target=self.target)
-        self.processing_time += time.time() - start_ts
+        # self.processing_time += time.time() - start_ts
         initial_message = RBMessage("initial", str(task_id), str(hits))
         self.client.publish(f"{BROADCAST_TOPIC}", initial_message.encode_message())
         self.busy = False
