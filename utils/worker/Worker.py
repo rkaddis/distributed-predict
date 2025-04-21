@@ -40,6 +40,7 @@ class Worker:
     free_nodes: list[str] = [] # list of nodes that are not busy
     target: int = 0 # the target object
     processing_time : float = 0 # total time spent processing frames
+    bytes_in_total : int = 0
 
     def __init__(self):
         self.client_name = secrets.token_urlsafe(8)  # set client name as random string
@@ -77,7 +78,6 @@ class Worker:
     def leader_loop(self):
         # distribute tasks to open nodes
         while len(self.results_dict) != len(self.image_dict):
-            print("Not done yet")
             for node in self.free_nodes:
                 task_id = -1
                 for i in self.image_dict:
@@ -111,7 +111,7 @@ class Worker:
 
         self.client.publish(CLIENT_TOPIC, b64encode(clip).decode())
         print("Sent results back to client.")
-        print(f"Total time spent processing: {round(self.processing_time, 2)} seconds")
+        print(f"Total bytes received: {round(self.bytes_in_total, 2)} bytes")
 
     # adds a node to the list of known nodes.
     def heartbeat_cb(self, message: Heartbeat):
@@ -195,6 +195,7 @@ class Worker:
 
     # specify callbacks
     def on_message(self, client: MQTT.Client, userdata, message: MQTT.MQTTMessage):
+        self.bytes_in_total += len(message.payload)
         if message.topic.endswith(HEARTBEAT_TOPIC):
             hb = heartbeat_decode(message.payload.decode())
             self.heartbeat_cb(hb)
