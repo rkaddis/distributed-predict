@@ -77,6 +77,7 @@ class Worker:
     def leader_loop(self):
         # distribute tasks to open nodes
         while len(self.results_dict) != len(self.image_dict):
+            print("Not done yet")
             for node in self.free_nodes:
                 task_id = -1
                 for i in self.image_dict:
@@ -203,4 +204,5 @@ class Worker:
             self.broadcast_cb(rb_message)
             del rb_message
         elif message.topic.endswith(CMD_INBOX):
+            print('got a command')
             threading.Thread(target=self.command_cb, args=[int(message.payload.decode())], daemon=True).start()
