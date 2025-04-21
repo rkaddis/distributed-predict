@@ -20,7 +20,7 @@ class RBInstance:
         self.hash_value = None
         
         if self.use_hash:
-            self.hash_value = sha256(initial_message.data)
+            self.hash_value = sha256(initial_message.data.encode())
 
         # send out your initial contents as an echo
         if self.use_hash:
@@ -64,7 +64,7 @@ class RBInstance:
 
             if max_count >= (n + f) // 2:
                 if self.use_hash:
-                    ready_message = RBMessage("ready", self.initial_message.subject, sha256(max_data))
+                    ready_message = RBMessage("ready", self.initial_message.subject, sha256(max_data.data.encode()))
                 else:
                     ready_message = RBMessage("ready", self.initial_message.subject, max_data)
                 self.send_all(ready_message)
@@ -75,13 +75,13 @@ class RBInstance:
 
             if max_count >= (2 * f + 1):
                 if self.use_hash:
-                    if sha256(max_data) == self.hash_value:
+                    if sha256(max_data.data.encode()) == self.hash_value:
                         accept_message = RBMessage("accepted", self.initial_message.subject, self.initial_message.data)
                         return accept_message
                     else:
                         raise Exception("Hash was bad!")
                 else:
-                    accept_message = RBMessage("accepted", self.initial_message.subject, max_data)
+                    accept_message = RBMessage("accepted", self.initial_message.subject, max_data.data)
                     return accept_message
 
     def __eq__(self, other):
