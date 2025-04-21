@@ -1,0 +1,12 @@
+[Unit]
+Description=Distributed Predict Worker Service
+After=network.target
+
+[Service]
+User=$USER
+ExecStart=(cd $HOME/distributed-predict/ && bash start-worker.bash)
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
