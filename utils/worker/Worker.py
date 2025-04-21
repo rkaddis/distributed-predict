@@ -130,26 +130,10 @@ class Worker:
     # follows the reliable broadcast protocol.
     def broadcast_cb(self, rb_message: RBMessage):
         if rb_message.state == "initial":
-            # if rb_message.subject == "client":
-            #     vr = videorequest_decode(rb_message.data)
-            #     video_bytes = b64decode(vr.video)
-            #     tf = tempfile.NamedTemporaryFile(suffix=".mp4")
-            #     tf.write(video_bytes)
-            #     cap = cv.VideoCapture(tf.name)
-
-            #     check, im = cap.read()
-            #     frame = 0
-            #     while check:
-            #         self.image_dict[frame] = im
-            #         check, im = cap.read()
-            #         frame += 1
-
-            #     self.target = vr.target
-            #     print(f"Got {len(self.image_dict.keys())} frames")
-            #     if self.leader:
-            #         threading.Thread(target=self.leader_loop, daemon=True).start()
-            # else:
-            self.broadcast_queue.append(RBInstance(self.client, self.nodes, rb_message, use_hash=True))
+            if rb_message.subject == "client":
+                self.broadcast_queue.append(RBInstance(self.client, self.nodes, rb_message, use_hash=True))
+            else:
+                self.broadcast_queue.append(RBInstance(self.client, self.nodes, rb_message))
         else:
             index = -1
             for i in range(len(self.broadcast_queue)):
