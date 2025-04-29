@@ -11,6 +11,7 @@ import tempfile
 import threading
 import time
 from base64 import b64decode, b64encode  # noqa
+import random
 
 from nicegui import ui
 from nicegui.events import UploadEventArguments
@@ -167,26 +168,36 @@ class DistributedVideoProcessingApp:
             ################################################################################
             # Process the video and display the result
             self.processed_video = b64decode(message.payload.decode())
-            try:
-                if self.temp_processed_video_path and os.path.exists(self.temp_processed_video_path):
-                    os.remove(self.temp_processed_video_path)
-            except Exception as e:
-                ui.notify(f"Error deleting previous video: {str(e)}", type="negative")
-                self.update_status(f"Error deleting previous video: {str(e)}")
+            # try:
+            #     if self.temp_processed_video_path and os.path.exists(self.temp_processed_video_path):
+            #         os.remove(self.temp_processed_video_path)
+            # except Exception as e:
+            #     ui.notify(f"Error deleting previous video: {str(e)}", type="negative")
+            #     self.update_status(f"Error deleting previous video: {str(e)}")
 
             self.temp_processed_video_path = None
             self.processed_video_preview.clear()
 
             # Create a temporary file for the video preview            
-            tf = tempfile.NamedTemporaryFile(suffix=".mp4")
-            self.temp_processed_video_path = tf.name
-            tf.write(self.processed_video)
+            
+            
+            output_video_path = "/home/ryank/School/distributed-predict/output-video-tmp.mp4"
+            output_h264_path = f"/home/ryank/School/distributed-predict/output-video-{random.random()}.mp4"
+
+            
+            with open(output_video_path, "wb") as f:
+                f.write(self.processed_video)
+                
+            os.system(f"ffmpeg -y -i {output_video_path} -an -vcodec libx264 -crf 23 {output_h264_path}")
+            os.remove(output_video_path)
+                
+            self.temp_processed_video_path = output_h264_path
 
             # Show the video preview
             with self.processed_video_preview:
                 with ui.card().classes("max-w-[400px] max-h-[400px] items-center justify-center"):
                     ui.label("Processed Video:").classes("text-lg text-gray-700 mb-2 mx-auto")
-                    ui.video(self.temp_processed_video_path, autoplay=True, muted=True, loop=True).classes(
+                    ui.video(self.temp_processed_video_path, autoplay=True, muted=True, loop=False).classes(
                         "object-contain mx-auto"
                     )
             self.update_status("Received processed video.")

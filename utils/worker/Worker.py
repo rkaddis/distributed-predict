@@ -96,8 +96,9 @@ class Worker:
             time.sleep(0.01)
 
         # return the results to the client
+        print(self.results_dict)
         start_frame, end_frame = max_subarray(dict(sorted(self.results_dict.items())))
-        fourcc = cv.VideoWriter_fourcc(*"mp4v")  # Be sure to use lower case
+        fourcc = cv.VideoWriter_fourcc("M", "P", "4", "V")  # Be sure to use lower case
         tf = tempfile.NamedTemporaryFile(suffix=".mp4")
         rows, cols, _ = self.image_dict[0].shape
         out = cv.VideoWriter(tf.name, fourcc, 30.0, (cols, rows))
@@ -112,6 +113,7 @@ class Worker:
         self.client.publish(CLIENT_TOPIC, b64encode(clip).decode())
         print("Sent results back to client.")
         print(f"Total bytes received: {round(self.bytes_in_total, 2)} bytes")
+        self.leader = False
 
     # adds a node to the list of known nodes.
     def heartbeat_cb(self, message: Heartbeat):
@@ -147,6 +149,7 @@ class Worker:
                 self.broadcast_queue.pop(index)
 
                 if out.subject == "client":  # client's video request
+                    self.image_dict = {}
                     vr = videorequest_decode(out.data)
                     video_bytes = b64decode(vr.video)
                     tf = tempfile.NamedTemporaryFile(suffix=".mp4")
@@ -161,6 +164,8 @@ class Worker:
                         frame += 1
 
                     self.target = vr.target
+                    self.results_dict = {}
+                    self.processing_queue = []
                     print(f"Got {len(self.image_dict.keys())} frames")
                     if self.leader:
                         threading.Thread(target=self.leader_loop, daemon=True).start()
